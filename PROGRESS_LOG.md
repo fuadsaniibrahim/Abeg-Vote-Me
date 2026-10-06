@@ -80,3 +80,5 @@ Negative check: a copy of TASKS.md with P1-T60 (OAuth) faked as `[x]` was reject
 ### Phase 1 status
 56 / 365 done (53 Phase 1 + 3 early Phase 2). Phase 1 not fully done: P1-T23 and P1-T59 `[~]` (pg and Redis branches never ran), P1-T55..T57 `[~]` (Docker files never built), P1-T58 `[!]` (no Docker), P1-T60 `[ ]` (OAuth, optional).
 
+- Correction: P1-T02 evidence now cites commit `1880601`, the commit that added the first log entry its test checks (it previously cited `dbf9dc5`, where the log was still empty).
+

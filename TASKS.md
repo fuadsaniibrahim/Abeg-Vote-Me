@@ -21,7 +21,7 @@ A `[x]` task needs at least one `file:`, at least one `test:` or `cmd:`, and a `
 ## Phase 1 — Tracking, scaffold, Docker, DB schema, auth, seeded world
 
 - [x] P1-T01 | Create TASKS.md master checklist (300+ tasks, all phases) | Evidence: file:TASKS.md ; test:scripts/tasks-file.test.mjs > TASKS.md > is well formed with 300+ uniquely numbered tasks ; test:scripts/tasks-file.test.mjs > TASKS.md > covers all 13 build phases ; commit:dbf9dc5
-- [x] P1-T02 | Create append-only PROGRESS_LOG.md | Evidence: file:PROGRESS_LOG.md ; test:scripts/tasks-file.test.mjs > PROGRESS_LOG.md > has at least one dated session entry with a commit hash ; commit:dbf9dc5
+- [x] P1-T02 | Create append-only PROGRESS_LOG.md | Evidence: file:PROGRESS_LOG.md ; test:scripts/tasks-file.test.mjs > PROGRESS_LOG.md > has at least one dated session entry with a commit hash ; commit:1880601
 - [x] P1-T03 | Create KNOWN_GAPS.md honesty list | Evidence: file:KNOWN_GAPS.md ; test:scripts/tasks-file.test.mjs > KNOWN_GAPS.md > lists environment gaps ; commit:dbf9dc5
 - [x] P1-T04 | verify-tasks: parse TASKS.md lines, statuses and evidence items | Evidence: file:scripts/lib/tasks-parser.mjs ; test:scripts/lib/tasks-parser.test.mjs > parseTasks > parses status, id, description and line number ; test:scripts/lib/tasks-parser.test.mjs > parseEvidence > splits files, tests, commands, commits and notes ; test:scripts/verify-tasks.test.mjs > verify-tasks script > fails on malformed task lines ; commit:dbf9dc5
 - [x] P1-T05 | verify-tasks: check file paths in evidence exist | Evidence: file:scripts/verify-tasks.mjs ; test:scripts/verify-tasks.test.mjs > verify-tasks script > fails a done task with a missing file ; commit:dbf9dc5
