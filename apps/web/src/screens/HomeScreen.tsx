@@ -5,7 +5,7 @@ import { Page } from '../components/Layout';
 import { Alert, Button, Card } from '../components/ui';
 import { useAuth } from '../store/auth';
 
-/** Signed-in landing page. Character creation and the dashboard arrive in Phase 3. */
+/** Signed-in landing page for unverified accounts. Verified players go straight into the game. */
 export function HomeScreen() {
   const { user, status, logout } = useAuth();
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ export function HomeScreen() {
 
   if (status !== 'ready') return <p role="status">Loading…</p>;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.emailVerified) return <Navigate to="/dashboard" replace />;
 
   async function resend() {
     try {
@@ -39,7 +40,7 @@ export function HomeScreen() {
           </Alert>
         )}
         {notice && <Alert kind={notice.kind}>{notice.text}</Alert>}
-        <p className="text-sm opacity-70">Character creation opens in the next update.</p>
+        <p className="text-sm opacity-70">Once your email is confirmed you can create your character.</p>
         <Button
           variant="ghost"
           onClick={async () => {

@@ -7,7 +7,10 @@ export default defineConfig({
   server: {
     port: Number(process.env.WEB_PORT ?? 5173),
     strictPort: true,
-    proxy: { '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:4000', changeOrigin: false } },
+    proxy: {
+      '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:4000', changeOrigin: false },
+      '/socket.io': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:4000', ws: true, changeOrigin: false },
+    },
   },
   build: { target: 'es2020', sourcemap: false },
 });

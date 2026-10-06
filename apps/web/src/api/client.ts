@@ -1,3 +1,5 @@
+import type { Stats } from '@avm/engine';
+
 // Typed fetch wrapper. The client only sends intents; the server is the source of truth.
 
 export interface PublicUser {
@@ -74,4 +76,166 @@ export const authApi = {
 
 export const worldApi = {
   summary: () => api<WorldSummary>('/api/world/summary'),
+};
+
+// ---------- game types ----------
+
+export interface PartyRef {
+  id: string;
+  code: string;
+  name: string;
+  color: string;
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  gender: 'male' | 'female';
+  age: number;
+  homeStateCode: string;
+  homeStateName: string;
+  homeLgaId: string;
+  homeLgaName: string;
+  background: string;
+  backgroundLabel: string;
+  perks: { id: string; label: string }[];
+  traits: string[];
+  stats: Stats;
+  wallet: number;
+  warChest: number;
+  energy: number;
+  journalistRep: number;
+  avatarSeed: string;
+  party: PartyRef | null;
+  groups: string[];
+  volunteerRoles: string[];
+  office: { id: string; name: string; kind: string } | null;
+  activeBusinesses: number;
+  unreadNotifications: number;
+}
+
+export interface CharacterForm {
+  name: string;
+  gender: 'male' | 'female';
+  age: number;
+  homeStateCode: string;
+  homeLgaId: string;
+  background: string;
+  traits: string[];
+}
+
+export interface PartyInfo extends PartyRef {
+  slogan: string;
+  ideology: string;
+  isIndependent: boolean;
+  treasury: number;
+  playerMembers: number;
+  seatsHeld: number;
+}
+
+export interface NewsItem {
+  id: number;
+  kind: string;
+  headline: string;
+  body: string;
+  stateCode: string | null;
+  source: 'world' | 'player' | 'story';
+  createdAt: string;
+  actorName: string | null;
+  actorId: string | null;
+}
+
+export interface Petition {
+  id: string;
+  title: string;
+  body: string;
+  creatorName: string;
+  signatures: number;
+  signed: boolean;
+  createdAt: string;
+}
+
+export interface Protest {
+  id: string;
+  stateName: string;
+  issue: string;
+  title: string;
+  endsAt: string;
+  organiserName: string;
+  participants: number;
+}
+
+export interface Finance {
+  wallet: number;
+  warChest: number;
+  transactions: { id: number; account: 'wallet' | 'warChest'; delta: number; reason: string; createdAt: string }[];
+  businesses: { id: string; name: string; sector: string; sectorLabel: string; capital: number; earned: number; createdAt: string }[];
+}
+
+export interface Notification {
+  id: number;
+  kind: string;
+  title: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  channel: string;
+  senderId: string;
+  senderName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface Clock {
+  date: { year: number; month: number; day: number; monthsElapsed: number };
+  msPerGameMonth: number;
+  serverTime: number;
+}
+
+export interface ActionOutcome {
+  text: string;
+  tag: string;
+  mods: Partial<Stats>;
+  fined?: number;
+}
+
+const post = <T>(path: string, body?: unknown) => api<T>(path, { method: 'POST', body: body ?? {} });
+
+export const gameApi = {
+  me: () => api<{ character: Profile }>('/api/me/character'),
+  createCharacter: (f: CharacterForm) => post<{ character: Profile }>('/api/characters', f),
+  publicProfile: (id: string) => api<{ character: { id: string; name: string; homeStateName: string; party: PartyRef | null; publicImage: number } }>(`/api/characters/${id}`),
+  searchCharacters: (q: string) => api<{ characters: { id: string; name: string; stateName: string }[] }>(`/api/characters?q=${encodeURIComponent(q)}`),
+  clock: () => api<Clock>('/api/world/clock'),
+  parties: () => api<{ parties: PartyInfo[] }>('/api/parties'),
+  joinParty: (code: string) => post<{ ok: true }>(`/api/parties/${code}/join`),
+  leaveParty: () => post<{ ok: true }>('/api/parties/leave'),
+  donate: (recipientType: 'party' | 'candidate', recipientId: string, amount: number) => post<{ wallet: number; recipient: string }>('/api/donations', { recipientType, recipientId, amount }),
+  rally: () => post<{ outcome: ActionOutcome; energy: number }>('/api/actions/rally'),
+  volunteer: (role: 'ward_agent' | 'delegate') => post<{ ok: true }>('/api/volunteer', { role }),
+  petitions: () => api<{ petitions: Petition[] }>('/api/petitions'),
+  createPetition: (title: string, body: string) => post<{ id: string }>('/api/petitions', { title, body }),
+  signPetition: (id: string) => post<{ signatures: number }>(`/api/petitions/${id}/sign`),
+  protests: () => api<{ protests: Protest[] }>('/api/protests'),
+  callProtest: (issue: string, title: string) => post<{ id: string }>('/api/protests', { issue, title }),
+  joinProtest: (id: string) => post<{ outcome: ActionOutcome }>(`/api/protests/${id}/join`),
+  joinGroup: (kind: string) => post<{ ok: true }>(`/api/groups/${kind}/join`),
+  leaveGroup: (kind: string) => post<{ ok: true }>(`/api/groups/${kind}/leave`),
+  startBusiness: (name: string, sector: string, capital: number) => post<{ id: string; cost: number }>('/api/businesses', { name, sector, capital }),
+  finance: () => api<Finance>('/api/me/finance'),
+  transfer: (from: 'wallet' | 'warChest', to: 'wallet' | 'warChest', amount: number) => post<{ wallet: number; warChest: number; flags: string[] }>('/api/me/transfer', { from, to, amount }),
+  news: (state?: string) => api<{ items: NewsItem[] }>(`/api/news${state ? `?state=${state}` : ''}`),
+  storyClaims: () => api<{ claims: { id: string; label: string; needsParty: boolean }[] }>('/api/stories/claims'),
+  publishStory: (targetId: string, claim: string, partyCode?: string) => post<{ id: string; headline: string; journalistRep: number }>('/api/stories', { targetId, claim, partyCode }),
+  notifications: () => api<{ notifications: Notification[] }>('/api/notifications'),
+  markRead: (ids?: number[]) => post<{ marked: number }>('/api/notifications/read', ids ? { ids } : {}),
+  chatChannels: () => api<{ channels: { id: string; label: string }[] }>('/api/chat/channels'),
+  chatHistory: (channel: string) => api<{ messages: ChatMessage[] }>(`/api/chat/messages?channel=${encodeURIComponent(channel)}`),
+  openDm: (characterId: string) => post<{ channel: string }>('/api/chat/dm', { characterId }),
+  block: (characterId: string) => post<{ ok: true }>('/api/chat/blocks', { characterId }),
+  report: (targetType: string, targetId: string, reason: string) => post<{ id: number }>('/api/reports', { targetType, targetId, reason }),
 };

@@ -49,6 +49,9 @@ try {
   const health = await poll(`http://localhost:${webPort}/api/health`, (b) => b.includes('"status":"ok"'));
   const html = await poll(`http://localhost:${webPort}/`, (b) => b.includes('<title>Abeg Vote Me</title>'));
   const summary = await poll(`http://localhost:${webPort}/api/world/summary`, (b) => b.includes('"seats":1317'));
+  // Socket.IO through the Vite proxy: an Engine.IO polling handshake answers with an "open" packet ("0{...}")
+  const sio = await poll(`http://localhost:${webPort}/socket.io/?EIO=4&transport=polling`, (b) => b.startsWith('0{'));
+  console.log('socket.io via proxy:', sio.slice(0, 40));
   console.log('web index ok:', html.includes('id="root"'));
   console.log('api via proxy:', health);
   console.log('world summary:', summary);

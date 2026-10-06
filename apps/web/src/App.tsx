@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Layout } from './components/Layout';
@@ -6,11 +6,49 @@ import { StartScreen } from './screens/StartScreen';
 import { LoginScreen, RegisterScreen } from './screens/AuthScreens';
 import { VerifyScreen } from './screens/VerifyScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { AppShell } from './components/AppShell';
 import { useAuth } from './store/auth';
 import { applyTheme, useTheme } from './store/theme';
 
-export function App() {
+// Game screens are split into their own chunks so the first load stays small.
+const CreateCharacterScreen = lazy(() => import('./screens/CreateCharacterScreen').then((m) => ({ default: m.CreateCharacterScreen })));
+const DashboardScreen = lazy(() => import('./screens/DashboardScreen').then((m) => ({ default: m.DashboardScreen })));
+const ProfileScreen = lazy(() => import('./screens/ProfileScreen').then((m) => ({ default: m.ProfileScreen })));
+const PartyHubScreen = lazy(() => import('./screens/PartyHubScreen').then((m) => ({ default: m.PartyHubScreen })));
+const ActionsScreen = lazy(() => import('./screens/ActionsScreen').then((m) => ({ default: m.ActionsScreen })));
+const FinanceScreen = lazy(() => import('./screens/FinanceScreen').then((m) => ({ default: m.FinanceScreen })));
+const NewsScreen = lazy(() => import('./screens/NewsScreen').then((m) => ({ default: m.NewsScreen })));
+const ChatScreen = lazy(() => import('./screens/ChatScreen').then((m) => ({ default: m.ChatScreen })));
+
+export function AppRoutes() {
   const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Suspense fallback={<p role="status">Loading…</p>}>
+        <Routes location={location} key={location.pathname.split('/')[1]}>
+          <Route path="/" element={<StartScreen />} />
+          <Route path="/register" element={<RegisterScreen />} />
+          <Route path="/login" element={<LoginScreen />} />
+          <Route path="/verify" element={<VerifyScreen />} />
+          <Route path="/home" element={<HomeScreen />} />
+          <Route path="/create" element={<CreateCharacterScreen />} />
+          <Route element={<AppShell />}>
+            <Route path="/news" element={<NewsScreen />} />
+            <Route path="/dashboard" element={<DashboardScreen />} />
+            <Route path="/profile" element={<ProfileScreen />} />
+            <Route path="/parties" element={<PartyHubScreen />} />
+            <Route path="/actions" element={<ActionsScreen />} />
+            <Route path="/finance" element={<FinanceScreen />} />
+            <Route path="/chat" element={<ChatScreen />} />
+          </Route>
+          <Route path="*" element={<StartScreen />} />
+        </Routes>
+      </Suspense>
+    </AnimatePresence>
+  );
+}
+
+export function App() {
   const load = useAuth((s) => s.load);
   const theme = useTheme((s) => s.theme);
 
@@ -22,16 +60,7 @@ export function App() {
 
   return (
     <Layout>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<StartScreen />} />
-          <Route path="/register" element={<RegisterScreen />} />
-          <Route path="/login" element={<LoginScreen />} />
-          <Route path="/verify" element={<VerifyScreen />} />
-          <Route path="/home" element={<HomeScreen />} />
-          <Route path="*" element={<StartScreen />} />
-        </Routes>
-      </AnimatePresence>
+      <AppRoutes />
     </Layout>
   );
 }
