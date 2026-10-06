@@ -187,3 +187,69 @@ verify exit: 0
 32 of 35 done. P3-T05 `[~]` (dashboard has no countdowns/promises/approval until Phases 5/7), P3-T20 `[~]` (in-process scheduler only, no BullMQ; the interval loop itself is untested), P3-T33 `[ ]` (web push not started).
 `docker compose up` still not verifiable (no Docker). Not tested in a real browser: all UI tests run in jsdom against the real in-process server.
 
+
+## 2026-10-06 — Session 1 (continued): Phase 4 seats and offices
+
+### What was done
+- Engine: wards (8-14 per LGA, seeded) with a Councillor and a Ward Chairman seat each; `generateNpc` for NPCs created after world generation; `offices.ts`: eligibility rules (age, prior office, party membership and its length, home state/LGA, term limits), inactivity status, succession map and vacancy plan, NPC governor security policy, NPC president economy inputs, NPC LG chairman project/divert decisions. Data: tile-map grid for the 37 states; news templates for seat events.
+- Migration `003_seats.sql`: `wards`, `seats.ward_id`, new seat kinds; tenure `start_reason`, `term_ends_at`, `autopilot_since`, `chief_of_staff_id`; `scheduled_elections` (one open per seat); `npc_decisions`; trigger that writes `tenure.start` / `tenure.end` to the audit log for every tenure change (actor taken from transaction-local settings).
+- Seeder: writes wards and ward seats, gives seeded holders a first term end; `upgradeWorld` adds wards (regenerated from the world's own seed) and term ends to worlds seeded before this phase. Checked on a copy of the real Phase 1 dev database: 8,383 wards and 18,083 seats added, the same counts as a fresh seed.
+- Server `game/seats.ts` (the only writer of `seat_tenures` besides the seeder, enforced by a test): `takeSeat` (lock seat, end current tenure, start new one; refuses a holder of another seat and term-limited election winners), `vacateSeat` (deputy succeeds President/Governor for the rest of the term and a new NPC deputy is appointed; deputy seats are filled by appointment; others get a by-election), term expiry (players hold over and a general election is scheduled; NPCs are returned, or replaced once term-limited, with a new deputy), inactivity (autopilot after 3 days, seat lost after 10), activity touch on signed-in requests, NPC decisions and office salaries in the world tick. `game/offices.ts`: seat list/detail/history/eligibility, country/state/constituency/LGA map endpoints, resign, chief of staff. Profile `office` now has term, autopilot and salary.
+- Web: Map (state tile map coloured by governor party), state view (executive, senate, LGA grid, reps), constituency view, LGA view (wards table), seat page (holder, term, acting holder, open election, eligibility, history, chief of staff, resign), dashboard office card, Map in the nav. All 5 new screens are lazy chunks (bundle check updated).
+
+### Problems found and fixed while testing
+- My first term-expiry test advanced the maintenance clock 48 days. That also made every player look inactive, so all their seats were vacated and 10 later tests failed. Rewrote the test to move the term end into the past instead of moving the clock.
+- A replaced deputy first inherited the old (already expired) term end, so it would have expired again on the next run; it now starts a new term with the new principal, and ends as `replaced`, not `term_limited`.
+- The chief-of-staff update was first written in the routes module, breaking "only seats.ts writes tenures"; moved it.
+- Removed a dashboard "your office went on autopilot" alert that could never show: any request from the player clears autopilot before the profile loads.
+- `scripts/smoke-dev.mjs` waited for `"seats":1317` and timed out; it now checks seats = 1,317 + 2 × wards, all held by NPCs.
+- The president NPC test asserted "austerity" for ambition 30, which sits on the threshold; noise decided it. The test now uses clear cases (ambition 10 and 95).
+
+### Mutation checks
+- Removed the audit trigger's end branch: the audit test failed. Restored.
+- Forced every vacancy to a by-election (no succession): 3 succession/appointment tests failed. Restored.
+- Salary amount forced to 0: the salary test failed. Restored.
+- Autopilot never set: the chief of staff / autopilot test failed. Restored.
+- Removed the "holds another seat" check together with the row lock: 2 tests failed.
+- **Removed only the seat row lock (`FOR UPDATE`): no test failed.** PGlite runs transactions one at a time, so the lock is never exercised. Recorded in KNOWN_GAPS.md and in the P4-T02 note.
+
+### Verification (real output, trimmed)
+```
+$ npm run typecheck
+typecheck exit 0
+
+$ npm test   (run twice)
+ Test Files  45 passed (45)
+      Tests  368 passed (368)
+ Test Files  45 passed (45)
+      Tests  368 passed (368)
+
+$ node scripts/check-bundle.mjs
+entry index-CpEqhj4b.js: 83.8 KB gzip (budget 200 KB)
+js chunks: 23; lazy screen chunks found: 13/13
+
+$ node scripts/smoke-dev.mjs
+smoke exit 0
+world summary: {"seeded":true,"seed":"abeg-vote-me-season-1","counts":{"states":37,"lgas":774,"senatorial_districts":109,"federal_constituencies":360,"wards":8383,"parties":5,"seats":18083,"npcs":18083,"seat_tenures":18083},"seatsHeldByNpcs":18083,"seatsHeldByPlayers":0}
+
+whole-world term renewal on PGlite (throwaway measurement, not kept as a test):
+renewal ms 1556 {"npcReturned":18325,"npcReplaced":0,"generalScheduled":0}
+audit rows {"n":36650}
+
+$ npm run verify-tasks
+=== TASKS.md verification report ===
+Total tasks:  365
+Done [x]:     136
+In progress:  9
+Blocked:      1
+Not started:  219
+
+All 136 done task(s) passed verification.
+verify exit 0
+```
+- Commit `d64a343`: Phase 4 server (engine, data, migration, seats, offices, tick, config, scripts).
+- Commit `4458527`: Phase 4 web.
+
+### Phase 4 status
+19 of 20 done. P4-T08 `[~]`: a chief of staff can be named and the acting person is shown, but there are no office actions to delegate until Phase 7.
+Not verified: the seat row lock under real concurrent connections (PGlite only), and the map in a real browser (jsdom only).
