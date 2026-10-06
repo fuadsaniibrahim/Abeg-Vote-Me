@@ -5,6 +5,36 @@ If something is fake, it is listed here. Entries are removed only when the gap i
 
 ## Environment
 
-- **No Docker, PostgreSQL or Redis on the development machine.** `docker compose up` cannot be run here, so Docker tasks stay `[!]` until someone runs them on a machine with Docker.
-  - Mitigation: the server talks to the database through one adapter (`apps/server/src/db/`). With `DATABASE_URL` set it uses real Postgres via `pg`. Without it, it uses **PGlite** (real Postgres compiled to WASM, in-process). All server tests and `npm run dev` run on PGlite, so SQL, constraints, triggers and transactions are exercised against real Postgres semantics. They are not exercised against a networked Postgres server.
-  - Redis: optional. Without `REDIS_URL` an in-memory fallback is used (single process only).
+- **No Docker, PostgreSQL or Redis on the development machine.** `docker compose up` has never been run. `apps/server/Dockerfile`, `apps/web/Dockerfile`, `apps/web/nginx.conf` and `docker-compose.yml` are written but **never built**. P1-T55..T57 are `[~]`, P1-T58 is `[!]`.
+- **Postgres via `pg` is untested.** The server uses one DB adapter (`apps/server/src/db/index.ts`). Every test and `npm run dev` use **PGlite** (real Postgres 17 compiled to WASM, in-process), so the SQL, constraints, partial unique indexes, triggers and transactions are tested against real Postgres semantics. The `pg` Pool branch (used when `DATABASE_URL` is set) has never connected to a server. Concurrency under a real connection pool (several transactions at once) is untested: PGlite runs one connection.
+- **Redis is untested.** `apps/server/src/redis.ts` has an in-memory fallback (tested) and an ioredis branch (never run). The in-memory fallback only works for a single server process.
+- **Rate limiting uses an in-memory store**, even when Redis is configured. With several server instances, limits would apply per instance.
+
+## Auth
+
+- **No real email delivery.** Verification emails are written to the `outbox_emails` table and logged in development. Nothing sends them over SMTP (P11-T19). In development, `GET /api/dev/outbox` shows them; this route is disabled when `NODE_ENV=production`.
+- **Login does not require a verified email.** Unverified users can log in; the plan is to gate game actions (character creation, Phase 3) on verification. Not enforced anywhere yet because no game actions exist.
+- **No OAuth** (P1-T60, not started). Email + password only.
+- **No password reset** (P11-T18).
+- **No CSRF token.** Session cookies are `SameSite=Lax` and the API takes JSON only, which blocks the usual cross-site form posts, but there is no explicit CSRF token (P11-T20).
+- **The age gate is a checkbox** ("I am 18 or older") sent as `acceptTerms`. There is no date-of-birth check (P11-T11).
+
+## World data and generation
+
+- **Senatorial districts and federal constituencies are generated, not real.** Counts are correct (109 and 360, per-state reps counts match official numbers), but they are built by grouping LGAs in list order (mostly alphabetical), so they are **not geographically accurate**. District names are generic ("Kano North/Central/South"). Constituency names come from their LGAs.
+- **Lagos has more constituencies (24) than LGAs (20).** The four most populous generated LGAs are split into "I" and "II" halves, each with 0.5 of the population. Real splits differ.
+- **Populations, wealth, insecurity, issue weights, party leanings and voter blocs are game-flavour numbers.** State populations are rough projections. Everything below state level is generated from a seed with random noise. None of it is real statistics.
+- **Capital LGA detection is a name match** against the capital city name. It fails for some states (e.g. Edo/Benin City, FCT/Abuja), which then have no LGA flagged as capital. Only the population boost depends on it.
+- **LGA name spellings were written from memory.** Per-state counts are verified against the official totals by test, but individual spellings have not been checked against an official list.
+- **NPC names** combine common given names and surnames from regional pools. Surnames of well-known real politicians are blocked (`BLOCKED_SURNAMES`), but a generated full name could still coincide with a real person.
+- **Ward / councillor seats do not exist yet** (P4-T10). Only the 1,317 seats from President down to LG Chairman are generated.
+
+## Server
+
+- The production server runs TypeScript through `tsx`. There is no compiled JS build step yet.
+- `GET /api/world/summary` is public and counts rows on every call. It is uncached.
+
+## Web
+
+- The signed-in home screen is a placeholder: it shows the email, verification status and logout. Character creation, the dashboard and every game screen come in later phases.
+- Sound, reduced-motion toggle (CSS honours the OS setting; there is no in-game switch yet), tutorial and the other UI/UX items in Phase 12 are not done.

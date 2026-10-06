@@ -5,7 +5,7 @@ export default defineConfig({
     projects: [
       'packages/*',
       'apps/*',
-      { test: { name: 'scripts', include: ['scripts/**/*.test.mjs'] } },
+      { test: { name: 'scripts', include: ['scripts/**/*.test.mjs'], testTimeout: 120000 } },
     ],
   },
 });

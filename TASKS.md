@@ -20,71 +20,71 @@ A `[x]` task needs at least one `file:`, at least one `test:` or `cmd:`, and a `
 
 ## Phase 1 — Tracking, scaffold, Docker, DB schema, auth, seeded world
 
-- [ ] P1-T01 | Create TASKS.md master checklist (300+ tasks, all phases) | Evidence:
-- [ ] P1-T02 | Create append-only PROGRESS_LOG.md | Evidence:
-- [ ] P1-T03 | Create KNOWN_GAPS.md honesty list | Evidence:
-- [ ] P1-T04 | verify-tasks: parse TASKS.md lines, statuses and evidence items | Evidence:
-- [ ] P1-T05 | verify-tasks: check file paths in evidence exist | Evidence:
-- [ ] P1-T06 | verify-tasks: run referenced Vitest tests and check they pass | Evidence:
-- [ ] P1-T07 | verify-tasks: run referenced commands and check exit code 0 | Evidence:
-- [ ] P1-T08 | verify-tasks: check commit hashes exist in git | Evidence:
-- [ ] P1-T09 | verify-tasks: print report (totals by status, failing tasks) and exit non-zero on failure | Evidence:
-- [ ] P1-T10 | verify-tasks: unit tests for parser and evidence rules | Evidence:
-- [ ] P1-T11 | Root npm workspaces monorepo (apps/*, packages/*) | Evidence:
-- [ ] P1-T12 | Shared strict tsconfig base and per-package tsconfigs | Evidence:
-- [ ] P1-T13 | Root typecheck script passes across all workspaces | Evidence:
-- [ ] P1-T14 | Root Vitest config with projects; npm test runs every workspace | Evidence:
-- [ ] P1-T15 | packages/engine scaffold (pure TS, no DB/UI deps) | Evidence:
-- [ ] P1-T16 | packages/data scaffold | Evidence:
-- [ ] P1-T17 | apps/server scaffold (Fastify + TypeScript) with health endpoint | Evidence:
-- [ ] P1-T18 | apps/web scaffold (Vite + React + TS) builds | Evidence:
-- [ ] P1-T19 | Tailwind configured with green-white-green theme tokens and dark mode | Evidence:
-- [ ] P1-T20 | Zustand and Framer Motion installed and used by the web shell | Evidence:
-- [ ] P1-T21 | Server config loader with validation and .env.example | Evidence:
-- [ ] P1-T22 | Game timers and calendar config file (config/game.json) loaded and validated | Evidence:
-- [ ] P1-T23 | DB adapter: pg (Postgres) or PGlite fallback behind one interface with transactions | Evidence:
-- [ ] P1-T24 | SQL migration runner with schema_migrations tracking (idempotent) | Evidence:
-- [ ] P1-T25 | Schema: users, sessions, email verification tokens, outbox | Evidence:
-- [ ] P1-T26 | Schema: states, LGAs, senatorial districts, federal constituencies (with LGA links) | Evidence:
-- [ ] P1-T27 | Schema: parties and party memberships | Evidence:
-- [ ] P1-T28 | Schema: characters (player profiles) and NPCs | Evidence:
-- [ ] P1-T29 | Schema: seats and seat_tenures with partial unique index (one active holder per seat) | Evidence:
-- [ ] P1-T30 | Schema: one active seat per player character (partial unique index) | Evidence:
-- [ ] P1-T31 | Schema: append-only audit_log (DB trigger blocks update/delete) | Evidence:
-- [ ] P1-T32 | Schema: world_state (clock, seed, national metrics) | Evidence:
-- [ ] P1-T33 | Data: 36 states + FCT with zone and capital | Evidence:
-- [ ] P1-T34 | Data: all 774 LGAs with per-state counts matching official totals | Evidence:
-- [ ] P1-T35 | Data: federal constituency counts per state summing to 360 | Evidence:
-- [ ] P1-T36 | Data: fictional parties (PUP, NDA, PRM, Labour Front, independent) | Evidence:
-- [ ] P1-T37 | Generator: 109 senatorial districts (3 per state + 1 FCT) | Evidence:
-- [ ] P1-T38 | Generator: 360 federal constituencies built from LGAs (splits when constituencies exceed LGAs) | Evidence:
-- [ ] P1-T39 | Generator: per-unit population, wealth, insecurity, issue priorities, party leanings, voter blocs (seeded, deterministic) | Evidence:
-- [ ] P1-T40 | Generator: full seat list (1 President, 1 VP, 36 Gov, 36 Deputy Gov, 109 Senate, 360 Reps, 774 LG Chairmen) | Evidence:
-- [ ] P1-T41 | Generator: NPC placeholder holder for every seat with fictional names | Evidence:
-- [ ] P1-T42 | Seed script writes generated world to DB in one transaction, idempotent | Evidence:
-- [ ] P1-T43 | Auth: register with email + password (scrypt hash, normalised unique email) | Evidence:
-- [ ] P1-T44 | Auth: email verification token issued, stored hashed, sent via outbox mailer | Evidence:
-- [ ] P1-T45 | Auth: verify-email endpoint consumes token once and expires | Evidence:
-- [ ] P1-T46 | Auth: login creates httpOnly session cookie; wrong password rejected | Evidence:
-- [ ] P1-T47 | Auth: logout revokes session; /me returns current user | Evidence:
-- [ ] P1-T48 | Auth: one account per email enforced (case-insensitive) | Evidence:
-- [ ] P1-T49 | Auth: rate limiting on auth routes | Evidence:
-- [ ] P1-T50 | Auth: audit log entries for register, verify, login, logout | Evidence:
-- [ ] P1-T51 | Web: start screen with satire/fiction disclaimer | Evidence:
-- [ ] P1-T52 | Web: register, login, verify-email screens wired to API | Evidence:
-- [ ] P1-T53 | Web: API client hook with typed responses and error handling | Evidence:
-- [ ] P1-T54 | npm run dev starts server (PGlite) and web together | Evidence:
-- [ ] P1-T55 | Server Dockerfile | Evidence:
-- [ ] P1-T56 | Web Dockerfile (static build served by nginx) | Evidence:
-- [ ] P1-T57 | docker-compose.yml with postgres, redis, server, web | Evidence:
-- [ ] P1-T58 | docker compose up verified end to end | Evidence:
-- [ ] P1-T59 | Redis client wrapper with in-memory fallback | Evidence:
+- [x] P1-T01 | Create TASKS.md master checklist (300+ tasks, all phases) | Evidence: file:TASKS.md ; test:scripts/tasks-file.test.mjs > TASKS.md > is well formed with 300+ uniquely numbered tasks ; test:scripts/tasks-file.test.mjs > TASKS.md > covers all 13 build phases ; commit:dbf9dc5
+- [x] P1-T02 | Create append-only PROGRESS_LOG.md | Evidence: file:PROGRESS_LOG.md ; test:scripts/tasks-file.test.mjs > PROGRESS_LOG.md > has at least one dated session entry with a commit hash ; commit:dbf9dc5
+- [x] P1-T03 | Create KNOWN_GAPS.md honesty list | Evidence: file:KNOWN_GAPS.md ; test:scripts/tasks-file.test.mjs > KNOWN_GAPS.md > lists environment gaps ; commit:dbf9dc5
+- [x] P1-T04 | verify-tasks: parse TASKS.md lines, statuses and evidence items | Evidence: file:scripts/lib/tasks-parser.mjs ; test:scripts/lib/tasks-parser.test.mjs > parseTasks > parses status, id, description and line number ; test:scripts/lib/tasks-parser.test.mjs > parseEvidence > splits files, tests, commands, commits and notes ; test:scripts/verify-tasks.test.mjs > verify-tasks script > fails on malformed task lines ; commit:dbf9dc5
+- [x] P1-T05 | verify-tasks: check file paths in evidence exist | Evidence: file:scripts/verify-tasks.mjs ; test:scripts/verify-tasks.test.mjs > verify-tasks script > fails a done task with a missing file ; commit:dbf9dc5
+- [x] P1-T06 | verify-tasks: run referenced Vitest tests and check they pass | Evidence: file:scripts/verify-tasks.mjs, scripts/lib/tasks-parser.mjs ; test:scripts/verify-tasks.test.mjs > verify-tasks script > runs referenced tests: passes a real passing test and fails a missing test name ; test:scripts/lib/tasks-parser.test.mjs > indexVitestReport > indexes assertions by relative file and full name ; commit:dbf9dc5
+- [x] P1-T07 | verify-tasks: run referenced commands and check exit code 0 | Evidence: file:scripts/verify-tasks.mjs ; test:scripts/verify-tasks.test.mjs > verify-tasks script > fails a done task whose command exits non-zero ; test:scripts/verify-tasks.test.mjs > verify-tasks script > passes a done task whose files exist, command succeeds and commit exists ; commit:dbf9dc5
+- [x] P1-T08 | verify-tasks: check commit hashes exist in git | Evidence: file:scripts/verify-tasks.mjs ; test:scripts/verify-tasks.test.mjs > verify-tasks script > fails a done task citing a commit that does not exist ; commit:dbf9dc5
+- [x] P1-T09 | verify-tasks: print report (totals by status, failing tasks) and exit non-zero on failure | Evidence: file:scripts/verify-tasks.mjs ; test:scripts/verify-tasks.test.mjs > verify-tasks script > reports counts for every status and ignores evidence on unfinished tasks ; test:scripts/verify-tasks.test.mjs > verify-tasks script > fails a done task with empty evidence ; commit:dbf9dc5
+- [x] P1-T10 | verify-tasks: unit tests for parser and evidence rules | Evidence: file:scripts/lib/tasks-parser.test.mjs, scripts/verify-tasks.test.mjs ; test:scripts/lib/tasks-parser.test.mjs > staticProblems > requires files, a proof and a commit ; test:scripts/lib/tasks-parser.test.mjs > staticProblems > rejects bad commit hashes and recursive verify commands ; commit:dbf9dc5
+- [x] P1-T11 | Root npm workspaces monorepo (apps/*, packages/*) | Evidence: file:package.json, apps/web/package.json, apps/server/package.json, packages/engine/package.json, packages/data/package.json ; cmd:npm ls --workspaces --depth=0 ; commit:7532602
+- [x] P1-T12 | Shared strict tsconfig base and per-package tsconfigs | Evidence: file:tsconfig.base.json, apps/web/tsconfig.json, apps/server/tsconfig.json, packages/engine/tsconfig.json, packages/data/tsconfig.json ; cmd:npm run typecheck ; commit:7532602
+- [x] P1-T13 | Root typecheck script passes across all workspaces | Evidence: file:package.json ; cmd:npm run typecheck ; commit:7532602
+- [x] P1-T14 | Root Vitest config with projects; npm test runs every workspace | Evidence: file:vitest.config.ts, packages/engine/vitest.config.ts, packages/data/vitest.config.ts, apps/server/vitest.config.ts, apps/web/vitest.config.ts ; cmd:npm test ; commit:7532602
+- [x] P1-T15 | packages/engine scaffold (pure TS, no DB/UI deps) | Evidence: file:packages/engine/package.json, packages/engine/src/index.ts ; test:packages/engine/test/purity.test.ts > engine purity > imports only relative modules and @avm/data (no DB, UI, network or node built-ins) ; commit:7532602
+- [x] P1-T16 | packages/data scaffold | Evidence: file:packages/data/package.json, packages/data/src/index.ts ; test:packages/data/test/data.test.ts > states > has 36 states plus FCT ; commit:7532602
+- [x] P1-T17 | apps/server scaffold (Fastify + TypeScript) with health endpoint | Evidence: file:apps/server/src/app.ts, apps/server/src/main.ts ; test:apps/server/test/app.test.ts > health > reports ok with the database driver in use ; commit:7532602
+- [x] P1-T18 | apps/web scaffold (Vite + React + TS) builds | Evidence: file:apps/web/index.html, apps/web/vite.config.ts, apps/web/src/main.tsx, apps/web/src/App.tsx ; cmd:npm run build -w @avm/web ; commit:7532602
+- [x] P1-T19 | Tailwind configured with green-white-green theme tokens and dark mode | Evidence: file:apps/web/src/styles.css, apps/web/src/store/theme.ts ; test:apps/web/test/theme.test.tsx > theme toggle > switches between light and dark, sets the html class and remembers the choice ; cmd:npm run build -w @avm/web ; commit:7532602
+- [x] P1-T20 | Zustand and Framer Motion installed and used by the web shell | Evidence: file:apps/web/src/store/auth.ts, apps/web/src/components/Layout.tsx ; test:apps/web/test/auth-e2e.test.tsx > register → verify → login against the real server > registers through the form and lands on home ; commit:7532602
+- [x] P1-T21 | Server config loader with validation and .env.example | Evidence: file:apps/server/src/config.ts, .env.example ; test:apps/server/test/config.test.ts > env > applies defaults and uses PGlite when DATABASE_URL is absent ; test:apps/server/test/config.test.ts > env > rejects an invalid DATABASE_URL ; test:apps/server/test/config.test.ts > env > refuses the dev cookie secret in production ; commit:7532602
+- [x] P1-T22 | Game timers and calendar config file (config/game.json) loaded and validated | Evidence: file:config/game.json, apps/server/src/config.ts ; test:apps/server/test/config.test.ts > game config > loads and validates config/game.json ; test:apps/server/test/config.test.ts > game config > rejects a voting window outside 24-48 hours ; test:apps/server/test/config.test.ts > game config > rejects vacancy timer shorter than autopilot timer ; commit:7532602
+- [~] P1-T23 | DB adapter: pg (Postgres) or PGlite fallback behind one interface with transactions | Evidence: file:apps/server/src/db/index.ts ; test:apps/server/test/db.test.ts > db adapter (PGlite) > rolls back a failed transaction ; note: PGlite path tested; the pg (networked Postgres) path has never run because no Postgres server is available
+- [x] P1-T24 | SQL migration runner with schema_migrations tracking (idempotent) | Evidence: file:apps/server/src/db/migrate.ts ; test:apps/server/test/db.test.ts > migrate > applies migrations once and is idempotent ; test:apps/server/test/db.test.ts > migrate > rolls back a broken migration and does not record it ; commit:7532602
+- [x] P1-T25 | Schema: users, sessions, email verification tokens, outbox | Evidence: file:apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/auth.test.ts > register > stores the verification token hashed, not in plain text ; test:apps/server/test/auth.test.ts > login, me, logout > logout revokes the session so the cookie stops working ; commit:7532602
+- [x] P1-T26 | Schema: states, LGAs, senatorial districts, federal constituencies (with LGA links) | Evidence: file:apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/seed.test.ts > seedWorld > links every LGA to one district and constituency shares summing to 1 ; commit:7532602
+- [x] P1-T27 | Schema: parties and party memberships | Evidence: file:apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/schema.test.ts > characters and parties constraints > allows only one active party membership per character ; commit:7532602
+- [x] P1-T28 | Schema: characters (player profiles) and NPCs | Evidence: file:apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/schema.test.ts > characters and parties constraints > allows only one character per user account ; test:apps/server/test/schema.test.ts > characters and parties constraints > rejects negative wallet and war chest balances ; commit:7532602
+- [x] P1-T29 | Schema: seats and seat_tenures with partial unique index (one active holder per seat) | Evidence: file:apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/schema.test.ts > seat_tenures constraints > rejects a second active holder for the same seat ; test:apps/server/test/schema.test.ts > seat_tenures constraints > allows a new holder after the current tenure ends (in one transaction) ; test:apps/server/test/schema.test.ts > seat_tenures constraints > rejects a tenure whose holder type does not match its holder columns ; commit:7532602
+- [x] P1-T30 | Schema: one active seat per player character (partial unique index) | Evidence: file:apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/schema.test.ts > seat_tenures constraints > rejects a character holding two seats at once ; commit:7532602
+- [x] P1-T31 | Schema: append-only audit_log (DB trigger blocks update/delete) | Evidence: file:apps/server/src/db/migrations/001_init.sql, apps/server/src/audit.ts ; test:apps/server/test/schema.test.ts > audit_log > is append-only: updates and deletes are blocked by trigger ; commit:7532602
+- [x] P1-T32 | Schema: world_state (clock, seed, national metrics) | Evidence: file:apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/schema.test.ts > world_state > holds exactly one row ; commit:7532602
+- [x] P1-T33 | Data: 36 states + FCT with zone and capital | Evidence: file:packages/data/src/states.ts ; test:packages/data/test/data.test.ts > states > has 36 states plus FCT ; test:packages/data/test/data.test.ts > states > assigns every state to one of six zones ; commit:7532602
+- [x] P1-T34 | Data: all 774 LGAs with per-state counts matching official totals | Evidence: file:packages/data/src/states.ts ; test:packages/data/test/data.test.ts > states > has 774 LGAs with per-state counts matching official totals ; test:packages/data/test/data.test.ts > states > has no duplicate LGA names within a state ; commit:7532602
+- [x] P1-T35 | Data: federal constituency counts per state summing to 360 | Evidence: file:packages/data/src/states.ts ; test:packages/data/test/data.test.ts > states > has federal constituency counts summing to 360 ; commit:7532602
+- [x] P1-T36 | Data: fictional parties (PUP, NDA, PRM, Labour Front, independent) | Evidence: file:packages/data/src/parties.ts ; test:packages/data/test/data.test.ts > parties > includes the fictional core parties and an independent option ; test:packages/data/test/data.test.ts > parties > gives every party a valid hex colour and unique code ; commit:7532602
+- [x] P1-T37 | Generator: 109 senatorial districts (3 per state + 1 FCT) | Evidence: file:packages/engine/src/world/generate.ts ; test:packages/engine/test/world.test.ts > generateWorld > creates 109 senatorial districts: 3 per state and 1 for FCT ; commit:7532602
+- [x] P1-T38 | Generator: 360 federal constituencies built from LGAs (splits when constituencies exceed LGAs) | Evidence: file:packages/engine/src/world/generate.ts ; test:packages/engine/test/world.test.ts > generateWorld > creates 360 federal constituencies covering every LGA with full population share ; test:packages/engine/test/world.test.ts > buildConstituencies > splits the most populous LGAs into I and II when constituencies exceed LGAs (Lagos) ; commit:7532602
+- [x] P1-T39 | Generator: per-unit population, wealth, insecurity, issue priorities, party leanings, voter blocs (seeded, deterministic) | Evidence: file:packages/engine/src/world/generate.ts, packages/engine/src/world/types.ts ; test:packages/engine/test/world.test.ts > generateWorld > gives every state, LGA, district and constituency a valid unit profile ; test:packages/engine/test/world.test.ts > generateWorld > is deterministic for the same seed ; commit:7532602
+- [x] P1-T40 | Generator: full seat list (1 President, 1 VP, 36 Gov, 36 Deputy Gov, 109 Senate, 360 Reps, 774 LG Chairmen) | Evidence: file:packages/engine/src/world/generate.ts ; test:packages/engine/test/world.test.ts > generateWorld > creates the full seat list with correct counts ; commit:7532602
+- [x] P1-T41 | Generator: NPC placeholder holder for every seat with fictional names | Evidence: file:packages/engine/src/world/generate.ts, packages/data/src/names.ts ; test:packages/engine/test/world.test.ts > generateWorld > creates exactly one NPC placeholder per seat ; test:packages/engine/test/world.test.ts > generateWorld > NPC names never use blocked real-politician surnames ; commit:7532602
+- [x] P1-T42 | Seed script writes generated world to DB in one transaction, idempotent | Evidence: file:apps/server/src/world/seed.ts, apps/server/src/scripts/seed.ts ; test:apps/server/test/seed.test.ts > seedWorld > writes the full world with correct counts ; test:apps/server/test/seed.test.ts > seedWorld > is idempotent: seeding again writes nothing and keeps the original seed ; commit:7532602
+- [x] P1-T43 | Auth: register with email + password (scrypt hash, normalised unique email) | Evidence: file:apps/server/src/auth/routes.ts, apps/server/src/auth/crypto.ts ; test:apps/server/test/auth.test.ts > register > creates an unverified user, sets a session cookie and stores only a password hash ; test:apps/server/test/auth.test.ts > password hashing > verifies the right password and rejects the wrong one ; commit:7532602
+- [x] P1-T44 | Auth: email verification token issued, stored hashed, sent via outbox mailer | Evidence: file:apps/server/src/auth/routes.ts, apps/server/src/mailer.ts ; test:apps/server/test/auth.test.ts > register > sends a verification email through the outbox with a link ; test:apps/server/test/auth.test.ts > register > stores the verification token hashed, not in plain text ; commit:7532602
+- [x] P1-T45 | Auth: verify-email endpoint consumes token once and expires | Evidence: file:apps/server/src/auth/routes.ts ; test:apps/server/test/auth.test.ts > verify-email > verifies the email once; the token cannot be reused ; test:apps/server/test/auth.test.ts > verify-email > rejects an expired token ; commit:7532602
+- [x] P1-T46 | Auth: login creates httpOnly session cookie; wrong password rejected | Evidence: file:apps/server/src/auth/routes.ts ; test:apps/server/test/auth.test.ts > login, me, logout > logs in with the right password and /me returns the user ; test:apps/server/test/auth.test.ts > login, me, logout > rejects a wrong password and an unknown email with the same error ; commit:7532602
+- [x] P1-T47 | Auth: logout revokes session; /me returns current user | Evidence: file:apps/server/src/auth/routes.ts ; test:apps/server/test/auth.test.ts > login, me, logout > logout revokes the session so the cookie stops working ; test:apps/server/test/auth.test.ts > login, me, logout > /me without a session is 401 ; commit:7532602
+- [x] P1-T48 | Auth: one account per email enforced (case-insensitive) | Evidence: file:apps/server/src/auth/routes.ts, apps/server/src/db/migrations/001_init.sql ; test:apps/server/test/auth.test.ts > register > enforces one account per email, case-insensitively ; commit:7532602
+- [x] P1-T49 | Auth: rate limiting on auth routes | Evidence: file:apps/server/src/app.ts, apps/server/src/auth/routes.ts ; test:apps/server/test/auth.test.ts > rate limiting > returns 429 after the configured number of auth requests per minute ; commit:7532602
+- [x] P1-T50 | Auth: audit log entries for register, verify, login, logout | Evidence: file:apps/server/src/audit.ts, apps/server/src/auth/routes.ts ; test:apps/server/test/auth.test.ts > audit log for auth > records register, verify, login, failed login and logout ; commit:7532602
+- [x] P1-T51 | Web: start screen with satire/fiction disclaimer | Evidence: file:apps/web/src/screens/StartScreen.tsx, apps/web/src/components/Disclaimer.tsx ; test:apps/web/test/start.test.tsx > StartScreen > shows the fiction and satire disclaimer ; commit:7532602
+- [x] P1-T52 | Web: register, login, verify-email screens wired to API | Evidence: file:apps/web/src/screens/AuthScreens.tsx, apps/web/src/screens/VerifyScreen.tsx ; test:apps/web/test/auth-e2e.test.tsx > register → verify → login against the real server > registers through the form and lands on home ; test:apps/web/test/auth-e2e.test.tsx > register → verify → login against the real server > verifies the email from the emailed link, and the link cannot be reused ; test:apps/web/test/auth-e2e.test.tsx > register → verify → login against the real server > shows an error for a wrong password and logs in with the right one ; commit:7532602
+- [x] P1-T53 | Web: API client hook with typed responses and error handling | Evidence: file:apps/web/src/api/client.ts ; test:apps/web/test/client.test.ts > api client > turns server errors into ApiError with code and message ; test:apps/web/test/client.test.ts > api client > maps network failures to a network ApiError ; commit:7532602
+- [x] P1-T54 | npm run dev starts server (PGlite) and web together | Evidence: file:package.json, scripts/smoke-dev.mjs ; cmd:node scripts/smoke-dev.mjs ; commit:dbf9dc5
+- [~] P1-T55 | Server Dockerfile | Evidence: file:apps/server/Dockerfile ; note: written but never built: Docker is not installed on the dev machine
+- [~] P1-T56 | Web Dockerfile (static build served by nginx) | Evidence: file:apps/web/Dockerfile, apps/web/nginx.conf ; note: written but never built: Docker is not installed on the dev machine
+- [~] P1-T57 | docker-compose.yml with postgres, redis, server, web | Evidence: file:docker-compose.yml ; note: written but never run: Docker is not installed on the dev machine
+- [!] P1-T58 | docker compose up verified end to end | Evidence: note: blocked: no Docker on the dev machine. Needs someone to run docker compose up and record the output
+- [~] P1-T59 | Redis client wrapper with in-memory fallback | Evidence: file:apps/server/src/redis.ts ; test:apps/server/test/kv.test.ts > memory kv fallback > gets, sets, deletes and expires keys ; note: in-memory fallback tested; the real Redis path has never run (no Redis available)
 - [ ] P1-T60 | OAuth login provider (optional sign-in path) | Evidence:
 
 ## Phase 2 — Engine package (pure, seeded, unit tested)
 
-- [ ] P2-T01 | Seeded RNG (deterministic, forkable streams) | Evidence:
-- [ ] P2-T02 | RNG helpers: int range, chance, weighted pick, shuffle, gaussian | Evidence:
+- [x] P2-T01 | Seeded RNG (deterministic, forkable streams) | Evidence: file:packages/engine/src/rng.ts ; test:packages/engine/test/rng.test.ts > Rng > is deterministic for the same seed ; test:packages/engine/test/rng.test.ts > Rng > fork is stable and does not advance the parent ; test:packages/engine/test/rng.test.ts > Rng > can be saved and restored from state ; commit:7532602
+- [x] P2-T02 | RNG helpers: int range, chance, weighted pick, shuffle, gaussian | Evidence: file:packages/engine/src/rng.ts ; test:packages/engine/test/rng.test.ts > Rng > int stays within inclusive bounds and hits both ends ; test:packages/engine/test/rng.test.ts > Rng > weighted respects weights and never picks zero-weight items ; test:packages/engine/test/rng.test.ts > Rng > chance approximates probability ; test:packages/engine/test/rng.test.ts > Rng > shuffle is a permutation ; test:packages/engine/test/rng.test.ts > Rng > gaussian has roughly the requested mean and sd ; commit:7532602
 - [ ] P2-T03 | Stat model: 8 stats clamped 0-100 with modifiers | Evidence:
 - [ ] P2-T04 | Backgrounds (10) with starting stats and perks | Evidence:
 - [ ] P2-T05 | Traits catalogue (12+) with effects; pick exactly 2; incompatible pairs rejected | Evidence:
@@ -115,7 +115,7 @@ A `[x]` task needs at least one `file:`, at least one `test:` or `cmd:`, and a `
 - [ ] P2-T30 | Legacy score calculation (Impact, Integrity, Popularity, Wealth, Power) | Evidence:
 - [ ] P2-T31 | Zoning expectation modifier on ticket odds | Evidence:
 - [ ] P2-T32 | Engine determinism test: same seed gives identical world tick | Evidence:
-- [ ] P2-T33 | Engine has no DB/UI imports (lint check) | Evidence:
+- [x] P2-T33 | Engine has no DB/UI imports (lint check) | Evidence: file:packages/engine/test/purity.test.ts ; test:packages/engine/test/purity.test.ts > engine purity > imports only relative modules and @avm/data (no DB, UI, network or node built-ins) ; test:packages/engine/test/purity.test.ts > engine purity > never uses Math.random (all randomness must be seeded) ; commit:7532602
 
 ## Phase 3 — Citizen role
 

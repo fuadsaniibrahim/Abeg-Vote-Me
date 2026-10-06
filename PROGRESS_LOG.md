@@ -3,3 +3,80 @@
 Append-only. Each entry: date, what was done, commands run with real (trimmed) output, commit hash.
 Corrections are made by adding a new entry, never by editing an old one.
 
+## 2026-10-06 — Session 1: task tracking + Phase 1
+
+### What was done
+- Created `TASKS.md` (365 tasks across 13 phases), `PROGRESS_LOG.md`, `KNOWN_GAPS.md`.
+- `scripts/verify-tasks.mjs` (+ `scripts/lib/tasks-parser.mjs`): parses TASKS.md, checks every `[x]` task's files, runs its referenced Vitest tests (one JSON-reporter run) and commands, checks commit hashes, prints a report, exits 1 on any failure. Evidence format is documented at the top of TASKS.md. `TASKS_FILE` env var lets tests point it at fixtures.
+- Monorepo: npm workspaces `apps/web`, `apps/server`, `packages/engine`, `packages/data`. Strict TS (TypeScript 7.0.2), Vitest 4.1.11 with one project per workspace plus `scripts`.
+- `packages/data`: 36 states + FCT, all 774 LGAs, official reps counts (sum 360), fictional parties (PUP, NDA, PRM, LF, IND), NPC name pools with a blocked list of real politicians' surnames. While writing the pools I caught and removed several surnames that matched real politicians (Atiku-, Ikpeazu-, Igbinedion-, Okonjo-, Lamido).
+- `packages/engine`: seeded RNG (sfc32/cyrb128, forkable, save/restore), deterministic world generator: 109 senatorial districts, 360 constituencies (Lagos splits), unit profiles (population, wealth, insecurity by type, issues, party leanings, 7 voter blocs), 1,317 seats, one NPC per seat.
+- `apps/server`: Fastify 5; DB adapter over `pg` or PGlite; SQL migration runner; schema `001_init.sql` (users, sessions, verification tokens, outbox, geography, parties, memberships, characters, NPCs, seats, `seat_tenures` with partial unique indexes for one-holder-per-seat and one-seat-per-holder, append-only `audit_log` trigger, `world_state`); idempotent transactional seeder; auth (register, verify email, login, logout, me, resend) with scrypt hashes, hashed tokens, httpOnly session cookies, per-route rate limits, audit entries.
+- `apps/web`: Vite 8 + React 19 + Tailwind 4 + Zustand + framer-motion. Start screen with disclaimer and live world stats, register/login/verify/home screens, dark mode toggle.
+- Docker: server + web Dockerfiles, nginx config, `docker-compose.yml`. **Not built or run** (no Docker here).
+- Moved P2-T01, P2-T02 (RNG) and P2-T33 (engine purity) to done early because world generation needed them; they have their own tests.
+
+### Decisions
+- No Docker/Postgres/Redis on this machine, so PGlite (real Postgres in WASM) backs tests and `npm run dev`. Recorded in KNOWN_GAPS.md.
+- `npm i -w <workspace> <deps>` silently failed to save runtime deps the first time for a freshly created workspace package.json; re-running fixed it. Worth knowing if it recurs.
+- Login is allowed before email verification; game actions will require it (Phase 3).
+
+### Commits
+- Commit `7532602`: Phase 1 implementation (scaffold, data, engine, server, web, Docker files)
+- Commit `dbf9dc5`: verify-tasks integration tests, TASKS.md checks, `npm run dev` smoke script
+
+### Issues found while verifying
+- First full `npm test`: `scripts/verify-tasks.test.mjs > runs referenced tests` timed out at Vitest's default 5s. It spawns a nested Vitest run, which is slower when every project runs in parallel (it passed alone). Raised `testTimeout` for the scripts project to 120s.
+
+### End-of-phase verification (real output, trimmed)
+
+```
+$ npm test
+ Test Files  18 passed (18)
+      Tests  123 passed (123)
+npm test exit: 0
+
+$ npm run typecheck        # tsc in data, engine, server, web
+typecheck exit: 0
+
+$ npm run build -w @avm/web
+dist/index.html                   0.66 kB │ gzip:   0.38 kB
+dist/assets/index-BonQ7Xnu.css   21.13 kB │ gzip:   5.03 kB
+dist/assets/index-RTLWmiaE.js   401.90 kB │ gzip: 128.70 kB
+
+$ node scripts/smoke-dev.mjs      # runs `npm run dev`, probes through the Vite proxy
+web index ok: true
+api via proxy: {"status":"ok","db":"pglite","dbOk":true,"kv":"memory"}
+world summary: {"seeded":true,...,"counts":{"states":37,"lgas":774,"senatorial_districts":109,"federal_constituencies":360,"parties":5,"seats":1317,"npcs":1317,"seat_tenures":1317},"seatsHeldByNpcs":1317,"seatsHeldByPlayers":0}
+smoke exit: 0
+
+$ npm run seed     # second run on the same .pglite dir
+"seeded": false    # idempotent
+
+$ npm run verify-tasks
+Running 17 test file(s) referenced by done tasks...
+Running: npm ls --workspaces --depth=0
+Running: npm run typecheck
+Running: npm test
+Running: npm run build -w @avm/web
+Running: node scripts/smoke-dev.mjs
+
+=== TASKS.md verification report ===
+Total tasks:  365
+Done [x]:     56
+In progress:  5
+Blocked:      1
+Not started:  303
+
+All 56 done task(s) passed verification.
+verify exit: 0
+```
+
+Negative check: a copy of TASKS.md with P1-T60 (OAuth) faked as `[x]` was rejected:
+`file not found: apps/server/src/auth/oauth.ts` and `test not found in run: ... > oauth > logs in with provider`.
+
+`docker compose up`: **NOT verified.** Docker is not installed on this machine (P1-T58 `[!]`).
+
+### Phase 1 status
+56 / 365 done (53 Phase 1 + 3 early Phase 2). Phase 1 not fully done: P1-T23 and P1-T59 `[~]` (pg and Redis branches never ran), P1-T55..T57 `[~]` (Docker files never built), P1-T58 `[!]` (no Docker), P1-T60 `[ ]` (OAuth, optional).
+
