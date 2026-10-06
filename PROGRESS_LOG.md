@@ -253,3 +253,33 @@ verify exit 0
 ### Phase 4 status
 19 of 20 done. P4-T08 `[~]`: a chief of staff can be named and the acting person is shown, but there are no office actions to delegate until Phase 7.
 Not verified: the seat row lock under real concurrent connections (PGlite only), and the map in a real browser (jsdom only).
+
+## 2026-10-06 — Session 1 (continued): username sign-in, email optional
+
+### What was done (user request: "email is not a must, username and password is okay, cookies for browser automatic log in")
+- Migration `004_username.sql`: `users.username` (3-20 letters, numbers or `_`, unique ignoring case); `email` and `email_normalized` nullable. Existing accounts get a username from their email's local part plus 5 characters of their id; they can still log in with their email.
+- Register takes `username`, `password`, optional `email`, `acceptTerms`. If an email is given it can still be confirmed, but nothing needs it. Login takes a username, or an email for accounts that have one.
+- Removed the email-verification gate from character creation, every game action (`requireCharacter`), the chat socket and the web shell. `/home` now just forwards into the game.
+- Web: Register has Username, Password, "Email (optional)"; Login has Username. Both go straight to the game.
+- Automatic login: the existing session cookie already lasts 30 days (`expires` set, httpOnly, SameSite=Lax); there were no changes, only new tests that check it and that a fresh page load restores the user from the cookie.
+
+### Verification (real output, trimmed)
+```
+$ npm run typecheck
+typecheck exit 0
+
+$ npm test
+ Test Files  45 passed (45)
+      Tests  374 passed (374)
+
+$ node scripts/check-bundle.mjs
+entry index-BXyUzzWA.js: 83.7 KB gzip (budget 200 KB)
+js chunks: 23; lazy screen chunks found: 13/13
+
+$ npm run verify-tasks
+Done [x]:     136
+All 136 done task(s) passed verification.
+verify exit 0
+```
+- Commit `34c7963`. TASKS.md: P1-T43 now describes username registration; P1-T20, P1-T46, P1-T52, P3-T01 and P3-T02 cite the renamed or new tests.
+- New gaps in KNOWN_GAPS.md: no account recovery without an email; one account per person is no longer enforced by anything.

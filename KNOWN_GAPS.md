@@ -12,8 +12,12 @@ If something is fake, it is listed here. Entries are removed only when the gap i
 
 ## Auth
 
-- **No real email delivery.** Verification emails are written to the `outbox_emails` table and logged in development. Nothing sends them over SMTP (P11-T19). In development, `GET /api/dev/outbox` shows them; this route is disabled when `NODE_ENV=production`.
-- **Login does not require a verified email.** Unverified users can log in; the plan is to gate game actions (character creation, Phase 3) on verification. Not enforced anywhere yet because no game actions exist.
+- **No real email delivery.** (Email is optional now.) Verification emails are written to the `outbox_emails` table and logged in development. Nothing sends them over SMTP (P11-T19). In development, `GET /api/dev/outbox` shows them; this route is disabled when `NODE_ENV=production`.
+- **Accounts are username + password; email is optional** (changed at the user's request, 2026-10-06). Nothing in the game needs a confirmed email. Consequences:
+  - **No account recovery without an email.** A player who forgets their password and gave no email cannot get back in (and password reset, P11-T18, does not exist yet for anyone).
+  - **"One account per person" is no longer backed by anything.** Email was the only check; now anyone can make many accounts. Multi-account detection belongs to anti-cheat (Phase 11).
+  - Usernames are only used to log in and are not shown to other players, so they are not run through the chat filter.
+- **Staying signed in** relies on the 30-day httpOnly session cookie (`SameSite=Lax`, `Secure` in production). There is no "remember me" choice and no sliding renewal: a session ends 30 days after login even if the player is active.
 - **No OAuth** (P1-T60, not started). Email + password only.
 - **No password reset** (P11-T18).
 - **No CSRF token.** Session cookies are `SameSite=Lax` and the API takes JSON only, which blocks the usual cross-site form posts, but there is no explicit CSRF token (P11-T20).
