@@ -89,7 +89,6 @@ export async function characterProfile(ctx: AppContext, c: CharacterRow) {
 export function registerCharacterRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post('/api/characters', async (req, reply) => {
     if (!req.user) throw new GameError(401, 'unauthenticated', 'Abeg, log in first.');
-    if (!req.user.emailVerified) throw new GameError(403, 'forbidden', 'Confirm your email first.');
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) throw new GameError(400, 'invalid_input', 'Invalid character data.');
     const input = parsed.data as Parameters<typeof validateCharacter>[0];

@@ -27,7 +27,6 @@ export function CreateCharacterScreen() {
 
   if (authStatus !== 'ready') return <p role="status">Loading…</p>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!user.emailVerified) return <Navigate to="/home" replace />;
 
   const set = <K extends keyof CharacterForm>(k: K, v: CharacterForm[K]) => setForm((f) => ({ ...f, [k]: v }));
   const stepErrors: (keyof CharacterForm)[][] = [['name', 'gender', 'age'], ['homeStateCode', 'homeLgaId'], ['background'], ['traits'], []];

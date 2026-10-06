@@ -34,7 +34,7 @@ export function StartScreen() {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           {user ? (
-            <Link to="/home" className="rounded-xl bg-naija-600 px-5 py-3 text-center font-semibold text-white hover:bg-naija-700">
+            <Link to="/dashboard" className="rounded-xl bg-naija-600 px-5 py-3 text-center font-semibold text-white hover:bg-naija-700">
               Continue your career
             </Link>
           ) : (

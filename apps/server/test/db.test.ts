@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createPgliteDb, type Db } from '../src/db/index.js';
@@ -59,5 +59,35 @@ describe('migrate', () => {
     const bad = await db.query("SELECT to_regclass('bad_t') AS t");
     expect(bad.rows[0]).toEqual({ t: null });
     await db.close();
+  });
+});
+
+describe('004_username migration', () => {
+  it('gives existing email-only accounts a unique, valid username and makes email optional', async () => {
+    const db = await createPgliteDb('memory');
+    try {
+      const real = join(import.meta.dirname, '../src/db/migrations');
+      const before = mkdtempSync(join(tmpdir(), 'avm-mig-'));
+      for (const f of ['001_init.sql', '002_citizen.sql', '003_seats.sql']) writeFileSync(join(before, f), readFileSync(join(real, f), 'utf8'));
+      await migrate(db, before);
+      await db.exec(`INSERT INTO users (email, email_normalized, password_hash) VALUES
+        ('Ada.Obi@test.ng', 'ada.obi@test.ng', 'x'),
+        ('ada-obi@other.ng', 'ada-obi@other.ng', 'x'),
+        ('a-very-long-email-local-part-indeed@test.ng', 'a-very-long-email-local-part-indeed@test.ng', 'x'),
+        ('+++@test.ng', '+++@test.ng', 'x')`);
+      expect(await migrate(db, real)).toEqual(['004_username.sql']);
+      const r = await db.query<{ email: string; username: string; username_normalized: string }>('SELECT email, username, username_normalized FROM users ORDER BY email');
+      for (const u of r.rows) {
+        expect(u.username, u.email).toMatch(/^[A-Za-z0-9_]{3,20}$/);
+        expect(u.username_normalized).toBe(u.username.toLowerCase());
+      }
+      expect(new Set(r.rows.map((u) => u.username_normalized)).size).toBe(4);
+      expect(r.rows.find((u) => u.email === 'Ada.Obi@test.ng')!.username).toMatch(/^AdaObi_[0-9a-f]{5}$/);
+      // new accounts may have no email
+      await db.exec("INSERT INTO users (username, username_normalized, password_hash) VALUES ('no_mail', 'no_mail', 'x')");
+      await expect(db.exec("INSERT INTO users (username, username_normalized, password_hash) VALUES ('bad name', 'bad name', 'x')")).rejects.toThrow(/users_username_format/);
+    } finally {
+      await db.close();
+    }
   });
 });

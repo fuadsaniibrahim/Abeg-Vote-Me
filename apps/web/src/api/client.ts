@@ -4,7 +4,8 @@ import type { Stats } from '@avm/engine';
 
 export interface PublicUser {
   id: string;
-  email: string;
+  username: string;
+  email: string | null;
   emailVerified: boolean;
   role: 'player' | 'admin';
 }
@@ -66,9 +67,10 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
 
 export const authApi = {
   me: () => api<{ user: PublicUser }>('/api/auth/me'),
-  register: (email: string, password: string, acceptTerms: boolean) =>
-    api<{ user: PublicUser }>('/api/auth/register', { method: 'POST', body: { email, password, acceptTerms } }),
-  login: (email: string, password: string) => api<{ user: PublicUser }>('/api/auth/login', { method: 'POST', body: { email, password } }),
+  /** Email is optional. */
+  register: (f: { username: string; password: string; email?: string; acceptTerms: boolean }) => api<{ user: PublicUser }>('/api/auth/register', { method: 'POST', body: f }),
+  /** `username` may also be the account's email. */
+  login: (username: string, password: string) => api<{ user: PublicUser }>('/api/auth/login', { method: 'POST', body: { username, password } }),
   logout: () => api<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
   verifyEmail: (token: string) => api<{ user: PublicUser }>('/api/auth/verify-email', { method: 'POST', body: { token } }),
   resendVerification: () => api<{ ok: true }>('/api/auth/resend-verification', { method: 'POST' }),

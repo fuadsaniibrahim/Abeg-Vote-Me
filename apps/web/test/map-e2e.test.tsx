@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { takeSeat } from '../../server/src/game/seats';
-import { createCharacterViaApi, renderAt, signUpVerified, startServer, useCookieJar, type TestServer } from './support';
+import { createCharacterViaApi, renderAt, signUp, startServer, useCookieJar, type TestServer } from './support';
 
 let srv: TestServer;
 beforeAll(async () => {
@@ -19,7 +19,7 @@ const holderOf = async (seatId: string) =>
 
 describe('map screens', () => {
   beforeAll(async () => {
-    await signUpVerified(srv, 'mapper@web.ng');
+    await signUp(srv, 'mapper');
     await createCharacterViaApi('Bayo Akande');
   });
 
@@ -82,7 +82,7 @@ describe('map screens', () => {
 
 describe('seat screen', () => {
   it('shows why I cannot hold a seat elsewhere', async () => {
-    await signUpVerified(srv, 'outsider@web.ng');
+    await signUp(srv, 'outsider');
     await createCharacterViaApi('Chidi Eze', { age: 30 });
     renderAt('/seats/GOV-LA');
     const why = await screen.findByRole('list', { name: 'Why you cannot hold this seat' });
@@ -92,9 +92,9 @@ describe('seat screen', () => {
   });
 
   it('my office: dashboard links to my seat; I name a chief of staff, then resign and a by-election is called', async () => {
-    await signUpVerified(srv, 'aide@web.ng');
+    await signUp(srv, 'aide');
     const aide = (await createCharacterViaApi('Ngozi Aide-Okafor')).character;
-    await signUpVerified(srv, 'chairman@web.ng');
+    await signUp(srv, 'chairman');
     const me = (await createCharacterViaApi('Sule Lamidi')).character; // OY-006
     await srv.ctx.db.transaction((tx) => takeSeat(tx, srv.ctx.game, { seatId: 'LGC-OY-006', holder: { type: 'player', characterId: me.id }, reason: 'election', term: 'new' }));
     const user = userEvent.setup();

@@ -82,7 +82,7 @@ export function AppShell() {
   const { profile, status, load, pushNotification } = useGame();
 
   useEffect(() => {
-    if (user?.emailVerified && status === 'idle') void load();
+    if (user && status === 'idle') void load();
   }, [user, status, load]);
 
   useEffect(() => {
@@ -97,7 +97,6 @@ export function AppShell() {
 
   if (authStatus !== 'ready') return <p role="status">Loading…</p>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!user.emailVerified) return <Navigate to="/home" replace />;
   if (status === 'missing') return <Navigate to="/create" replace />;
   if (status === 'error') return <p role="alert">Could not load your game. Refresh to try again.</p>;
   if (!profile) return <p role="status">Loading your character…</p>;

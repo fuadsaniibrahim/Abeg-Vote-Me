@@ -36,7 +36,7 @@ export function VerifyScreen() {
         {state.kind === 'ok' && (
           <Alert kind="success">
             Email confirmed. Your political journey don start!{' '}
-            <Link className="font-semibold underline" to={currentUser ? '/home' : '/login'}>
+            <Link className="font-semibold underline" to={currentUser ? '/dashboard' : '/login'}>
               {currentUser ? 'Continue' : 'Log in'}
             </Link>
           </Alert>

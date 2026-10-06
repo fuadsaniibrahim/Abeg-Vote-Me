@@ -20,8 +20,10 @@ afterAll(async () => {
   await ctx.db.close();
 });
 
+let n = 0;
+/** Register with an email (optional for players) and a fresh username. */
 const register = (email: string, password = 'correct-horse-9', acceptTerms: boolean = true) =>
-  app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password, acceptTerms } });
+  app.inject({ method: 'POST', url: '/api/auth/register', payload: { username: `user_${++n}`, email, password, acceptTerms } });
 
 /** Pull the verification token from the newest outbox email to `email`. */
 async function tokenFor(email: string): Promise<string> {
@@ -45,7 +47,7 @@ describe('register', () => {
   it('creates an unverified user, sets a session cookie and stores only a password hash', async () => {
     const res = await register('Ada@Example.ng');
     expect(res.statusCode).toBe(201);
-    expect(res.json().user).toMatchObject({ email: 'Ada@Example.ng', emailVerified: false, role: 'player' });
+    expect(res.json().user).toMatchObject({ username: expect.stringMatching(/^user_/), email: 'Ada@Example.ng', emailVerified: false, role: 'player' });
     expect(cookieFrom(res.headers['set-cookie'], SESSION_COOKIE)).toBeDefined();
     const row = await ctx.db.query<{ password_hash: string }>("SELECT password_hash FROM users WHERE email_normalized = 'ada@example.ng'");
     expect(row.rows[0]!.password_hash).not.toContain('correct-horse-9');
@@ -107,7 +109,7 @@ describe('verify-email', () => {
 describe('login, me, logout', () => {
   it('logs in with the right password and /me returns the user', async () => {
     await register('login@test.ng');
-    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'LOGIN@test.ng', password: 'correct-horse-9' } });
+    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'LOGIN@test.ng', password: 'correct-horse-9' } });
     expect(res.statusCode).toBe(200);
     const cookie = cookieFrom(res.headers['set-cookie'], SESSION_COOKIE)!;
     expect(res.headers['set-cookie']!.toString()).toMatch(/HttpOnly/i);
@@ -116,9 +118,9 @@ describe('login, me, logout', () => {
     expect(me.json().user.email).toBe('login@test.ng');
   });
 
-  it('rejects a wrong password and an unknown email with the same error', async () => {
-    const a = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'login@test.ng', password: 'wrong-password' } });
-    const b = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'nobody@test.ng', password: 'wrong-password' } });
+  it('rejects a wrong password and an unknown login with the same error', async () => {
+    const a = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'login@test.ng', password: 'wrong-password' } });
+    const b = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'nobody@test.ng', password: 'wrong-password' } });
     expect(a.statusCode).toBe(401);
     expect(b.statusCode).toBe(401);
     expect(a.json().error).toBe(b.json().error);
@@ -130,7 +132,7 @@ describe('login, me, logout', () => {
   });
 
   it('logout revokes the session so the cookie stops working', async () => {
-    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'login@test.ng', password: 'correct-horse-9' } });
+    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'login@test.ng', password: 'correct-horse-9' } });
     const cookie = cookieFrom(res.headers['set-cookie'], SESSION_COOKIE)!;
     const out = await app.inject({ method: 'POST', url: '/api/auth/logout', headers: { cookie } });
     expect(out.statusCode).toBe(200);
@@ -142,9 +144,56 @@ describe('login, me, logout', () => {
     const reg = await register('banned@test.ng');
     const cookie = cookieFrom(reg.headers['set-cookie'], SESSION_COOKIE)!;
     await ctx.db.query("UPDATE users SET banned_at = now() WHERE email_normalized = 'banned@test.ng'");
-    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'banned@test.ng', password: 'correct-horse-9' } });
+    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'banned@test.ng', password: 'correct-horse-9' } });
     expect(login.statusCode).toBe(403);
     expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } })).statusCode).toBe(401);
+  });
+});
+
+describe('username accounts', () => {
+  const signUp = (payload: Record<string, unknown>) => app.inject({ method: 'POST', url: '/api/auth/register', payload: { password: 'correct-horse-9', acceptTerms: true, ...payload } });
+
+  it('registers with just a username and password; no email is needed or sent', async () => {
+    const res = await signUp({ username: 'Oga_Musa' });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().user).toMatchObject({ username: 'Oga_Musa', email: null, emailVerified: false });
+    const cookie = cookieFrom(res.headers['set-cookie'], SESSION_COOKIE)!;
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } })).json().user.username).toBe('Oga_Musa');
+    const mail = await ctx.db.query("SELECT 1 FROM outbox_emails o JOIN users u ON u.email = o.to_email WHERE u.username = 'Oga_Musa'");
+    expect(mail.rows).toHaveLength(0);
+    // a blank email counts as none
+    expect((await signUp({ username: 'blank_mail', email: '  ' })).json().user.email).toBeNull();
+    expect((await app.inject({ method: 'POST', url: '/api/auth/resend-verification', headers: { cookie } })).json().error).toBe('no_email');
+  });
+
+  it('usernames are unique ignoring case and must be 3-20 letters, numbers or underscores', async () => {
+    const dup = await signUp({ username: 'OGA_MUSA' });
+    expect(dup.statusCode).toBe(409);
+    expect(dup.json().error).toBe('username_taken');
+    for (const bad of ['ab', 'a'.repeat(21), 'has space', 'bad-dash', 'emoji😀', 'at@sign', '']) {
+      const r = await signUp({ username: bad });
+      expect(r.statusCode, bad).toBe(400);
+    }
+    expect((await signUp({ password: 'correct-horse-9' })).statusCode).toBe(400); // no username
+    expect((await signUp({ username: 'Okay_123_name' })).statusCode).toBe(201);
+  });
+
+  it('logs in with the username in any case, or with the email if the account has one', async () => {
+    await signUp({ username: 'Mama_Put', email: 'mama@put.ng' });
+    for (const login of ['Mama_Put', 'mama_put', 'MAMA@put.ng']) {
+      const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: login, password: 'correct-horse-9' } });
+      expect(res.statusCode, login).toBe(200);
+      expect(res.json().user.username).toBe('Mama_Put');
+    }
+  });
+
+  it('keeps the browser signed in: the session cookie is persistent, httpOnly and lasts the configured days', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'Oga_Musa', password: 'correct-horse-9' } });
+    const raw = ([] as string[]).concat(res.headers['set-cookie'] as string | string[]).find((c) => c.startsWith(`${SESSION_COOKIE}=`))!;
+    expect(raw).toMatch(/HttpOnly/i);
+    expect(raw).toMatch(/SameSite=Lax/i);
+    const expires = new Date(/Expires=([^;]+)/i.exec(raw)![1]!).getTime();
+    expect(Math.abs(expires - (Date.now() + ctx.game.auth.sessionDays * 86_400_000))).toBeLessThan(60_000);
   });
 });
 
@@ -162,7 +211,7 @@ describe('rate limiting', () => {
     const a = await buildApp(c);
     const codes: number[] = [];
     for (let i = 0; i < 5; i++) {
-      const res = await a.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'x@test.ng', password: 'whatever-123' } });
+      const res = await a.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'x@test.ng', password: 'whatever-123' } });
       codes.push(res.statusCode);
     }
     expect(codes.slice(0, 3)).toEqual([401, 401, 401]);

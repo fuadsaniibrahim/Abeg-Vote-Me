@@ -7,8 +7,8 @@ interface AuthState {
   status: 'idle' | 'loading' | 'ready';
   load: () => Promise<void>;
   setUser: (user: PublicUser | null) => void;
-  login: (email: string, password: string) => Promise<PublicUser>;
-  register: (email: string, password: string, acceptTerms: boolean) => Promise<PublicUser>;
+  login: (username: string, password: string) => Promise<PublicUser>;
+  register: (f: { username: string; password: string; email?: string; acceptTerms: boolean }) => Promise<PublicUser>;
   logout: () => Promise<void>;
 }
 
@@ -26,13 +26,13 @@ export const useAuth = create<AuthState>((set) => ({
     }
   },
   setUser: (user) => set({ user }),
-  async login(email, password) {
-    const { user } = await authApi.login(email, password);
+  async login(username, password) {
+    const { user } = await authApi.login(username, password);
     set({ user });
     return user;
   },
-  async register(email, password, acceptTerms) {
-    const { user } = await authApi.register(email, password, acceptTerms);
+  async register(f) {
+    const { user } = await authApi.register(f);
     set({ user });
     return user;
   },

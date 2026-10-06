@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { io, type Socket } from 'socket.io-client';
-import { createCharacterViaApi, cookieHeader, renderAt, signUpVerified, startServer, useCookieJar, type TestServer } from './support';
+import { createCharacterViaApi, cookieHeader, renderAt, signUp, startServer, useCookieJar, type TestServer } from './support';
 import { useGame } from '../src/store/game';
 
 let srv: TestServer;
@@ -16,14 +16,14 @@ afterAll(async () => {
 });
 
 describe('character creation wizard', () => {
-  it('a verified player without a character is sent to the wizard', async () => {
-    await signUpVerified(srv, 'nochar@web.ng');
+  it('a signed-in player without a character is sent to the wizard', async () => {
+    await signUp(srv, 'nochar');
     renderAt('/dashboard');
     expect(await screen.findByRole('heading', { name: 'Who you be' })).toBeInTheDocument();
   });
 
   it('walks through all steps and creates the character on the server', async () => {
-    await signUpVerified(srv, 'wizard@web.ng');
+    await signUp(srv, 'wizard');
     const user = userEvent.setup();
     renderAt('/create');
     await user.type(await screen.findByLabelText('Full name'), 'Amaka Nwosu');
@@ -50,7 +50,7 @@ describe('character creation wizard', () => {
   });
 
   it('shows the engine validation message for a single-word name and blocks Next', async () => {
-    await signUpVerified(srv, 'badname@web.ng');
+    await signUp(srv, 'badname');
     const user = userEvent.setup();
     renderAt('/create');
     await user.type(await screen.findByLabelText('Full name'), 'Amaka');
@@ -61,7 +61,7 @@ describe('character creation wizard', () => {
 
 describe('citizen screens', () => {
   beforeAll(async () => {
-    await signUpVerified(srv, 'citizen@web.ng');
+    await signUp(srv, 'citizen');
     await createCharacterViaApi('Tunde Balogun');
   });
 
@@ -140,14 +140,14 @@ describe('live chat and notifications', () => {
   let otherCookie: string;
 
   beforeAll(async () => {
-    await signUpVerified(srv, 'chatter-b@web.ng');
+    await signUp(srv, 'chatter_b');
     await createCharacterViaApi('Bisi Ogunleye');
     otherCookie = cookieHeader();
     other = io(srv.url, { path: '/socket.io', transports: ['websocket'], extraHeaders: { cookie: otherCookie }, forceNew: true });
     await new Promise<void>((r) => other.on('connect', () => r()));
     await new Promise((r) => other.emit('chat:join', 'global', r));
 
-    await signUpVerified(srv, 'chatter-a@web.ng');
+    await signUp(srv, 'chatter_a');
     await createCharacterViaApi('Kunle Adesanya');
   });
   afterAll(() => {

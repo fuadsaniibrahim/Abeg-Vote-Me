@@ -46,10 +46,9 @@ export interface CharacterRow {
   created_at: Date;
 }
 
-/** Character for the signed-in, verified user. Throws a GameError otherwise. */
+/** Character for the signed-in user. Throws a GameError otherwise. */
 export async function requireCharacter(ctx: AppContext, req: FastifyRequest, db: Queryable = ctx.db, lock = false): Promise<CharacterRow> {
   if (!req.user) throw new GameError(401, 'unauthenticated', 'Abeg, log in first.');
-  if (!req.user.emailVerified) throw forbidden('Confirm your email first.');
   const r = await db.query<CharacterRow>(`SELECT * FROM characters WHERE user_id = $1${lock ? ' FOR UPDATE' : ''}`, [req.user.id]);
   const c = r.rows[0];
   if (!c) throw new GameError(409, 'no_character', 'Create your character first.');

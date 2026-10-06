@@ -21,21 +21,23 @@ afterAll(async () => {
 
 const valid = { name: 'Chidi Nwosu', gender: 'male', age: 40, homeStateCode: 'EN', homeLgaId: 'EN-004', background: 'businessperson', traits: ['silver_tongue', 'deep_pockets'] };
 
-async function registerOnly(email: string) {
-  const reg = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'test-password-1', acceptTerms: true } });
+async function registerOnly(username: string) {
+  const reg = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { username, password: 'test-password-1', acceptTerms: true } });
   return { cookie: cookieFrom(reg.headers['set-cookie'], SESSION_COOKIE) as string, id: reg.json().user.id as string };
 }
 
 describe('character creation', () => {
-  it('requires a verified email', async () => {
-    const u = await registerOnly('unverified@test.ng');
-    const res = await app.inject({ method: 'POST', url: '/api/characters', payload: valid, headers: { cookie: u.cookie } });
-    expect(res.statusCode).toBe(403);
+  it('requires a signed-in account, but no email', async () => {
+    expect((await app.inject({ method: 'POST', url: '/api/characters', payload: valid })).statusCode).toBe(401);
+    const u = await registerOnly('no_email_player');
+    const row = await ctx.db.query<{ email: string | null; email_verified_at: Date | null }>('SELECT email, email_verified_at FROM users WHERE id = $1', [u.id]);
+    expect(row.rows[0]).toEqual({ email: null, email_verified_at: null });
+    const res = await app.inject({ method: 'POST', url: '/api/characters', payload: { ...valid, name: 'Obi Nwankwo' }, headers: { cookie: u.cookie } });
+    expect(res.statusCode).toBe(201);
   });
 
   it('creates a character with engine-computed stats and starting money', async () => {
-    const u = await registerOnly('creator@test.ng');
-    await ctx.db.query('UPDATE users SET email_verified_at = now() WHERE id = $1', [u.id]);
+    const u = await registerOnly('creator');
     const res = await app.inject({ method: 'POST', url: '/api/characters', payload: valid, headers: { cookie: u.cookie } });
     expect(res.statusCode).toBe(201);
     const c = res.json().character;
@@ -56,8 +58,7 @@ describe('character creation', () => {
   });
 
   it('rejects invalid characters with per-field errors and never trusts client stats', async () => {
-    const u = await registerOnly('invalid@test.ng');
-    await ctx.db.query('UPDATE users SET email_verified_at = now() WHERE id = $1', [u.id]);
+    const u = await registerOnly('invalid');
     const res = await app.inject({ method: 'POST', url: '/api/characters', payload: { ...valid, age: 70, traits: ['clean_hands', 'smooth_operator'] }, headers: { cookie: u.cookie } });
     expect(res.statusCode).toBe(400);
     expect(Object.keys(res.json().fields).sort()).toEqual(['age', 'traits']);
@@ -70,8 +71,7 @@ describe('character creation', () => {
 
 describe('profile endpoints', () => {
   it('/api/me/character returns the full profile; 409 before a character exists', async () => {
-    const u = await registerOnly('nochar@test.ng');
-    await ctx.db.query('UPDATE users SET email_verified_at = now() WHERE id = $1', [u.id]);
+    const u = await registerOnly('nochar');
     expect((await app.inject({ method: 'GET', url: '/api/me/character', headers: { cookie: u.cookie } })).statusCode).toBe(409);
     const p = await makePlayer(app, ctx);
     const me = await p.call('GET', '/api/me/character');

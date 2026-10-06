@@ -69,12 +69,11 @@ export function cookieHeader(): string {
   return [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
 }
 
-/** Register, verify (directly in DB), sign in the auth store, point sockets at the server with this cookie. */
-export async function signUpVerified(srv: TestServer, email: string): Promise<void> {
+/** Register with a username (no email), sign in the auth store, point sockets at the server with this cookie. */
+export async function signUp(srv: TestServer, username: string): Promise<void> {
   clearCookies();
-  const { user } = await authApi.register(email, 'web-test-pass-1', true);
-  await srv.ctx.db.query('UPDATE users SET email_verified_at = now() WHERE id = $1', [user.id]);
-  useAuth.setState({ user: { ...user, emailVerified: true }, status: 'ready' });
+  const { user } = await authApi.register({ username, password: 'web-test-pass-1', acceptTerms: true });
+  useAuth.setState({ user, status: 'ready' });
   useGame.setState({ profile: null, status: 'idle', notifications: [], clock: null });
   const cookie = cookieHeader();
   setSocketFactory(() => io(srv.url, { path: '/socket.io', transports: ['websocket'], extraHeaders: { cookie }, forceNew: true }));

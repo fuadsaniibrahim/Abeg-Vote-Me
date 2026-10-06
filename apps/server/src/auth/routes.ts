@@ -10,14 +10,17 @@ export const SESSION_COOKIE = 'avm_sid';
 
 export interface PublicUser {
   id: string;
-  email: string;
+  username: string;
+  /** Optional; nothing in the game needs it. */
+  email: string | null;
   emailVerified: boolean;
   role: 'player' | 'admin';
 }
 
 interface UserRow {
   id: string;
-  email: string;
+  username: string;
+  email: string | null;
   password_hash: string;
   email_verified_at: string | null;
   role: 'player' | 'admin';
@@ -31,7 +34,9 @@ declare module 'fastify' {
   }
 }
 
-const toPublic = (u: UserRow): PublicUser => ({ id: u.id, email: u.email, emailVerified: !!u.email_verified_at, role: u.role });
+const toPublic = (u: UserRow): PublicUser => ({ id: u.id, username: u.username, email: u.email, emailVerified: !!u.email_verified_at, role: u.role });
+
+export const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 
 export function sendError(reply: FastifyReply, status: number, error: string, message: string) {
   return reply.code(status).send({ error, message });
@@ -71,9 +76,18 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
   const { db, game, env } = ctx;
   const rateLimit = { rateLimit: { max: game.rateLimits.authPerMinute, timeWindow: '1 minute' } };
 
-  const credentials = z.object({
-    email: z.string().trim().email().max(254),
-    password: z.string().min(game.auth.minPasswordLength).max(200),
+  const registration = z.object({
+    username: z.string().trim().regex(USERNAME_RE, 'Username must be 3-20 letters, numbers or underscores.'),
+    password: z.string().min(game.auth.minPasswordLength, `Password must be at least ${game.auth.minPasswordLength} characters.`).max(200),
+    // optional: blank counts as none
+    email: z
+      .string()
+      .trim()
+      .max(254)
+      .optional()
+      .transform((v) => (v ? v : undefined))
+      .pipe(z.email('That email does not look right.').optional()),
+    acceptTerms: z.literal(true, { message: 'You must accept the terms' }),
   });
 
   async function startSession(req: FastifyRequest, reply: FastifyReply, userId: string) {
@@ -112,29 +126,34 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
   }
 
   app.post('/api/auth/register', { config: rateLimit }, async (req, reply) => {
-    const parsed = credentials
-      .extend({ acceptTerms: z.literal(true, { message: 'You must accept the terms' }) })
-      .safeParse(req.body);
+    const parsed = registration.safeParse(req.body);
     if (!parsed.success) return sendError(reply, 400, 'invalid_input', parsed.error.issues[0]?.message ?? 'Invalid input');
-    const { email, password } = parsed.data;
-    const normalised = normaliseEmail(email);
+    const { username, email, password } = parsed.data;
+    const emailNorm = email ? normaliseEmail(email) : null;
+    const taken = await db.query<{ username_normalized: string; email_normalized: string | null }>(
+      'SELECT username_normalized, email_normalized FROM users WHERE username_normalized = $1 OR email_normalized = $2',
+      [username.toLowerCase(), emailNorm],
+    );
+    if (taken.rows.some((r) => r.username_normalized === username.toLowerCase())) return sendError(reply, 409, 'username_taken', 'That username is taken. Try another one.');
+    if (taken.rows.length) return sendError(reply, 409, 'email_taken', 'An account with this email already exists.');
     const passwordHash = await hashPassword(password);
     try {
       const user = await db.transaction(async (tx) => {
-        const r = await tx.query<UserRow>('INSERT INTO users (email, email_normalized, password_hash) VALUES ($1, $2, $3) RETURNING *', [
-          email.trim(),
-          normalised,
-          passwordHash,
-        ]);
+        const r = await tx.query<UserRow>(
+          'INSERT INTO users (username, username_normalized, email, email_normalized, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+          [username, username.toLowerCase(), email ?? null, emailNorm, passwordHash],
+        );
         const u = r.rows[0] as UserRow;
-        await issueVerification(tx, u.id, u.email);
-        await audit(tx, { action: 'auth.register', actorUserId: u.id, targetType: 'user', targetId: u.id, ip: req.ip });
+        // an email is optional; if given, it can be confirmed later (not needed to play)
+        if (u.email) await issueVerification(tx, u.id, u.email);
+        await audit(tx, { action: 'auth.register', actorUserId: u.id, targetType: 'user', targetId: u.id, details: { withEmail: !!u.email }, ip: req.ip });
         return u;
       });
       await startSession(req, reply, user.id);
       return reply.code(201).send({ user: toPublic(user) });
     } catch (e) {
-      if ((e as { code?: string }).code === '23505') return sendError(reply, 409, 'email_taken', 'An account with this email already exists.');
+      // a race between the check above and the insert
+      if ((e as { code?: string }).code === '23505') return sendError(reply, 409, 'username_taken', 'That username or email is already in use.');
       throw e;
     }
   });
@@ -163,20 +182,25 @@ export function registerAuthRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post('/api/auth/resend-verification', { config: rateLimit }, async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
+    if (!user.email) return sendError(reply, 400, 'no_email', 'Your account has no email.');
     if (user.emailVerified) return sendError(reply, 400, 'already_verified', 'Your email is already verified.');
-    await db.transaction((tx) => issueVerification(tx, user.id, user.email));
+    const email = user.email;
+    await db.transaction((tx) => issueVerification(tx, user.id, email));
     return { ok: true };
   });
 
   app.post('/api/auth/login', { config: rateLimit }, async (req, reply) => {
-    const parsed = z.object({ email: z.string().trim().max(254), password: z.string().max(200) }).safeParse(req.body);
-    if (!parsed.success) return sendError(reply, 400, 'invalid_input', 'Email and password required');
-    const r = await db.query<UserRow>('SELECT * FROM users WHERE email_normalized = $1', [normaliseEmail(parsed.data.email)]);
+    // `username` takes a username or, for accounts that have one, an email (usernames cannot contain "@")
+    const parsed = z.object({ username: z.string().trim().min(1).max(254), password: z.string().max(200) }).safeParse(req.body);
+    if (!parsed.success) return sendError(reply, 400, 'invalid_input', 'Username and password required');
+    const login = parsed.data.username.toLowerCase();
+    const col = login.includes('@') ? 'email_normalized' : 'username_normalized';
+    const r = await db.query<UserRow>(`SELECT * FROM users WHERE ${col} = $1`, [login]);
     const u = r.rows[0];
     const ok = u ? await verifyPassword(parsed.data.password, u.password_hash) : false;
     if (!u || !ok) {
-      await audit(db, { action: 'auth.login_failed', actorUserId: u?.id ?? null, details: { email: normaliseEmail(parsed.data.email) }, ip: req.ip });
-      return sendError(reply, 401, 'bad_credentials', 'Email or password no correct.');
+      await audit(db, { action: 'auth.login_failed', actorUserId: u?.id ?? null, details: { login }, ip: req.ip });
+      return sendError(reply, 401, 'bad_credentials', 'Username or password no correct.');
     }
     if (u.banned_at) return sendError(reply, 403, 'banned', 'This account has been banned.');
     await startSession(req, reply, u.id);

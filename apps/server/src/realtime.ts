@@ -19,7 +19,7 @@ function parseCookies(header: string | undefined): Record<string, string> {
 async function characterForToken(ctx: AppContext, token: string): Promise<CharacterRow | null> {
   const r = await ctx.db.query<CharacterRow>(
     `SELECT c.* FROM sessions s JOIN users u ON u.id = s.user_id JOIN characters c ON c.user_id = u.id
-     WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now() AND u.banned_at IS NULL AND u.email_verified_at IS NOT NULL`,
+     WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now() AND u.banned_at IS NULL`,
     [sha256(token)],
   );
   return r.rows[0] ?? null;

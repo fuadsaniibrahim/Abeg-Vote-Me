@@ -9,7 +9,10 @@ beforeAll(async () => {
 afterAll(() => ctx.db.close());
 
 async function makeCharacter(email: string): Promise<string> {
-  const u = await ctx.db.query<{ id: string }>("INSERT INTO users (email, email_normalized, password_hash) VALUES ($1, $1, 'x') RETURNING id", [email]);
+  const u = await ctx.db.query<{ id: string }>("INSERT INTO users (username, username_normalized, email, email_normalized, password_hash) VALUES ($2, lower($2), $1, $1, 'x') RETURNING id", [
+    email,
+    email.split('@')[0]!.replace(/[^A-Za-z0-9_]/g, '_'),
+  ]);
   const c = await ctx.db.query<{ id: string }>(
     `INSERT INTO characters (user_id, name, gender, age, home_state_code, home_lga_id, background, traits, stats)
      VALUES ($1, 'Test Person', 'female', 30, 'LA', 'LA-011', 'lawyer', ARRAY['silver_tongue','clean_hands'], '{}') RETURNING id`,
@@ -68,7 +71,7 @@ describe('characters and parties constraints', () => {
   });
 
   it('allows only one character per user account', async () => {
-    const u = await ctx.db.query<{ id: string }>("INSERT INTO users (email, email_normalized, password_hash) VALUES ('one@test.ng','one@test.ng','x') RETURNING id");
+    const u = await ctx.db.query<{ id: string }>("INSERT INTO users (username, username_normalized, email, email_normalized, password_hash) VALUES ('one','one','one@test.ng','one@test.ng','x') RETURNING id");
     const insert = () =>
       ctx.db.query(
         `INSERT INTO characters (user_id, name, gender, age, home_state_code, home_lga_id, background, traits, stats)

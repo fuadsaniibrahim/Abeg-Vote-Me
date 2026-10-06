@@ -163,7 +163,7 @@ export function registerOfficeRoutes(app: FastifyInstance, ctx: AppContext) {
       else if (deputy?.holder) acting = { type: 'deputy', name: deputy.holder.name };
       else acting = { type: 'autopilot', name: null };
     }
-    const me = req.user?.emailVerified ? await db.query<{ id: string }>('SELECT id FROM characters WHERE user_id = $1', [req.user.id]) : null;
+    const me = req.user ? await db.query<{ id: string }>('SELECT id FROM characters WHERE user_id = $1', [req.user.id]) : null;
     const salary = ctx.game.offices.monthlySalary[seat.kind] ?? 0;
     return {
       seat: { ...seat, salary, mine: !!me?.rows[0] && seat.holder?.id === me.rows[0].id },

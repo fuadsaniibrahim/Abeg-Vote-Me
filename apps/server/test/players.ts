@@ -15,18 +15,17 @@ export interface TestPlayer {
 
 let n = 0;
 
-/** Register, mark email verified (the verify flow itself is tested in auth.test.ts), create a character. */
+/** Register with a username (no email needed) and create a character. */
 export async function makePlayer(
   app: FastifyInstance,
   ctx: AppContext,
   over: Partial<{ name: string; homeStateCode: string; homeLgaId: string; background: string; traits: string[]; age: number; gender: 'male' | 'female' }> = {},
 ): Promise<TestPlayer> {
   n++;
-  const email = `player${n}-${Date.now()}@test.ng`;
-  const reg = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password: 'test-password-1', acceptTerms: true } });
+  const username = `p${n}_${Date.now().toString(36)}`;
+  const reg = await app.inject({ method: 'POST', url: '/api/auth/register', payload: { username, password: 'test-password-1', acceptTerms: true } });
   const cookie = cookieFrom(reg.headers['set-cookie'], SESSION_COOKIE) as string;
   const userId = reg.json().user.id as string;
-  await ctx.db.query('UPDATE users SET email_verified_at = now() WHERE id = $1', [userId]);
   const call = async (method: InjectOptions['method'], url: string, payload?: unknown) => {
     const res = await app.inject({ method, url, payload: payload as InjectOptions['payload'], headers: { cookie } });
     return { status: res.statusCode, body: res.body ? JSON.parse(res.body) : null };
