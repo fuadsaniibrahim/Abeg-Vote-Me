@@ -4,12 +4,20 @@ import rateLimit from '@fastify/rate-limit';
 import type { AppContext } from './context.js';
 import { registerAuthRoutes, registerSessionHook } from './auth/routes.js';
 import { registerWorldRoutes } from './world/routes.js';
+import { errorHandler } from './game/core.js';
+import { registerCharacterRoutes } from './game/characters.js';
+import { registerPartyRoutes } from './game/parties.js';
+import { registerCitizenRoutes } from './game/citizen.js';
+import { registerFinanceRoutes } from './game/finance.js';
+import { registerMediaRoutes } from './game/media.js';
+import { registerChatRoutes } from './game/chat.js';
 
 export async function buildApp(ctx: AppContext, opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: true });
   await app.register(cookie, { secret: ctx.env.COOKIE_SECRET });
   // Limits are opt-in per route via `config.rateLimit`.
   await app.register(rateLimit, { global: false });
+  app.setErrorHandler(errorHandler);
 
   registerSessionHook(app, ctx);
 
@@ -20,5 +28,11 @@ export async function buildApp(ctx: AppContext, opts: { logger?: boolean } = {})
 
   registerAuthRoutes(app, ctx);
   registerWorldRoutes(app, ctx);
+  registerCharacterRoutes(app, ctx);
+  registerPartyRoutes(app, ctx);
+  registerCitizenRoutes(app, ctx);
+  registerFinanceRoutes(app, ctx);
+  registerMediaRoutes(app, ctx);
+  registerChatRoutes(app, ctx);
   return app;
 }

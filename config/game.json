@@ -6,7 +6,10 @@
   },
   "terms": {
     "years": 4,
-    "maxTerms": { "GOVERNOR": 2, "PRESIDENT": 2 }
+    "maxTerms": {
+      "GOVERNOR": 2,
+      "PRESIDENT": 2
+    }
   },
   "election": {
     "phaseHours": {
@@ -34,5 +37,29 @@
   "rateLimits": {
     "authPerMinute": 10,
     "globalPerMinute": 300
+  },
+  "citizen": {
+    "partyRejoinCooldownHours": 24,
+    "rallyCooldownMinutes": 60,
+    "protestCooldownHours": 6,
+    "protestDurationHours": 24,
+    "storyCooldownHours": 4,
+    "minDonation": 1000,
+    "maxDonation": 50000000,
+    "petitionMilestones": [
+      10,
+      50,
+      100,
+      500,
+      1000
+    ]
+  },
+  "chat": {
+    "messagesPer10s": 5,
+    "historyLimit": 50
+  },
+  "tick": {
+    "checkIntervalMs": 60000,
+    "maxCatchUpTurns": 24
   }
 }

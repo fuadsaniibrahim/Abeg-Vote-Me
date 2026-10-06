@@ -55,6 +55,18 @@ export const gameConfigSchema = z.object({
     minPasswordLength: z.number().int().min(8),
   }),
   rateLimits: z.object({ authPerMinute: z.number().int().positive(), globalPerMinute: z.number().int().positive() }),
+  citizen: z.object({
+    partyRejoinCooldownHours: z.number().min(0),
+    rallyCooldownMinutes: z.number().min(0),
+    protestCooldownHours: z.number().min(0),
+    protestDurationHours: z.number().positive(),
+    storyCooldownHours: z.number().min(0),
+    minDonation: z.number().int().positive(),
+    maxDonation: z.number().int().positive(),
+    petitionMilestones: z.array(z.number().int().positive()),
+  }),
+  chat: z.object({ messagesPer10s: z.number().int().positive(), historyLimit: z.number().int().positive().max(200) }),
+  tick: z.object({ checkIntervalMs: z.number().int().positive(), maxCatchUpTurns: z.number().int().positive() }),
 });
 export type GameConfig = z.infer<typeof gameConfigSchema>;
 
