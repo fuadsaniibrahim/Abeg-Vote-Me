@@ -283,3 +283,24 @@ verify exit 0
 ```
 - Commit `34c7963`. TASKS.md: P1-T43 now describes username registration; P1-T20, P1-T46, P1-T52, P3-T01 and P3-T02 cite the renamed or new tests.
 - New gaps in KNOWN_GAPS.md: no account recovery without an email; one account per person is no longer enforced by anything.
+
+## 2026-10-06 — Session 1 (continued): commit messages rewritten before the first push
+
+At the user's request, the `Co-Authored-By: Claude` line was removed from every commit message (`git filter-branch --msg-filter`) before the first push to GitHub. File contents are unchanged (`git diff` between the old and new history is empty), but every commit hash changed. TASKS.md now cites the new hashes. Older entries in this log keep the old hashes; this table maps them:
+
+| Old | New | Commit |
+|---|---|---|
+| 7532602 | f0dbc9e | Phase 1 implementation |
+| dbf9dc5 | 09efe8f | verify-tasks integration tests, smoke script |
+| 1880601 | 449bd34 | Phase 1 verification |
+| 0c4dd9d | ea9b597 | TASKS.md: P1-T02 evidence fix |
+| 26b74ea | 97e20b4 | Phase 2 engine |
+| 44d1534 | d230e43 | Phase 2 verification |
+| 8489b6c | f4b1609 | Phase 3 server |
+| 1a5bbb8 | 3eb85fa | Phase 3 web |
+| 20884bd | a0b988f | Phase 3 verification |
+| d64a343 | 875a76f | Phase 4 server |
+| 4458527 | 8b32a3c | Phase 4 web |
+| 09df2da | 235365d | Phase 4 verification |
+| 34c7963 | 0c3b317 | Username sign-in |
+| d042fba | 9b831b9 | Username sign-in tracking |
