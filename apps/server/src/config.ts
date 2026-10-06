@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { z } from 'zod';
+import { SEAT_KINDS, realMsForGameYears } from '@avm/engine';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -34,6 +35,13 @@ const phaseHours = z.object({
   swearing_in: z.number().positive(),
 });
 
+const officeRule = z.object({
+  minAge: z.number().int().min(25),
+  priorOffice: z.array(z.enum(SEAT_KINDS)),
+  requiresParty: z.boolean(),
+  residency: z.enum(['none', 'state', 'lga']),
+});
+
 export const gameConfigSchema = z.object({
   calendar: z.object({
     realMsPerGameMonth: z.number().int().positive(),
@@ -49,6 +57,12 @@ export const gameConfigSchema = z.object({
     .object({ autopilotAfterDays: z.number().positive(), vacancyAfterDays: z.number().positive() })
     .refine((v) => v.vacancyAfterDays > v.autopilotAfterDays, 'vacancyAfterDays must exceed autopilotAfterDays'),
   rookieShieldDays: z.number().min(0),
+  offices: z.object({
+    byElectionDelayHours: z.number().positive(),
+    minPartyDays: z.number().min(0),
+    monthlySalary: z.record(z.enum(SEAT_KINDS), z.number().int().min(0)),
+    eligibility: z.record(z.enum(SEAT_KINDS), officeRule),
+  }),
   auth: z.object({
     sessionDays: z.number().positive(),
     verificationTokenHours: z.number().positive(),
@@ -87,4 +101,9 @@ export function parseGameConfig(raw: unknown): GameConfig {
 
 export function loadGameConfig(path: string): GameConfig {
   return parseGameConfig(JSON.parse(readFileSync(path, 'utf8')));
+}
+
+/** Real milliseconds in one term of office. */
+export function termMs(game: GameConfig): number {
+  return realMsForGameYears(game.calendar, game.terms.years);
 }

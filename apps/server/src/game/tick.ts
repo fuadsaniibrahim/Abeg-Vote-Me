@@ -22,6 +22,7 @@ import { credit } from './core.js';
 import { publishNews } from './news.js';
 import { deliver, notify, type NotificationRow } from './notify.js';
 import { stateName } from './characters.js';
+import { npcOfficeDecisions, payOfficeSalaries, recordNpcDecisions, runSeatMaintenance } from './seats.js';
 
 interface WorldRow {
   seed: string;
@@ -47,6 +48,8 @@ export interface TickReport {
   turn: number;
   businessesPaid: number;
   totalIncome: number;
+  salariesPaid: number;
+  npcDecisions: number;
 }
 
 /** Run exactly one tick (turn = last_tick_turn + 1). Returns null if another worker already claimed it. */
@@ -58,12 +61,20 @@ export async function runOneTick(ctx: AppContext): Promise<TickReport | null> {
     if (!ws) return null;
     const turn = ws.last_tick_turn + 1;
     const sim = await loadSimState(tx, ws);
-    const next = tickWorld(sim, { economy: { fuelSubsidy: false, corruption: 50, spending: 0, oilShock: 0 }, security: {} }, ws.seed);
+    // NPC governors set state security policy and an NPC president sets corruption/spending; player-held
+    // offices use neutral inputs until players get policy levers (Phase 7).
+    const decisions = await npcOfficeDecisions(tx, ws.seed, turn, sim.insecurity);
+    const economyInputs = { fuelSubsidy: false, corruption: decisions.economy?.corruption ?? 50, spending: decisions.economy?.spending ?? 0, oilShock: 0 };
+    const next = tickWorld(sim, { economy: economyInputs, security: decisions.security }, ws.seed);
     const claimed = await tx.query(
       'UPDATE world_state SET last_tick_turn = $1, economy = $2::jsonb, metrics = $3::jsonb, updated_at = now() WHERE id = 1 AND last_tick_turn = $4',
       [turn, JSON.stringify(next.economy), JSON.stringify({ insecurity: next.insecurity, approval: next.approval }), ws.last_tick_turn],
     );
     if (!claimed.rowCount) return null;
+
+    await recordNpcDecisions(tx, turn, decisions, new Rng(`${ws.seed}/turn:${turn}/office-news`));
+    const salaries = await payOfficeSalaries(tx, ctx.game);
+    pending.push(...salaries.notifications);
 
     // business income
     const rng = new Rng(`${ws.seed}/turn:${turn}/business`);
@@ -109,9 +120,18 @@ export async function runOneTick(ctx: AppContext): Promise<TickReport | null> {
       await tx.query("INSERT INTO news_items (kind, headline, state_code, source, game_turn) VALUES ($1, $2, $3, 'world', $4)", [kind, headline, biggest.code, turn]);
     }
     await tx.query("INSERT INTO audit_log (action, target_type, target_id, details) VALUES ('world.tick', 'world', '1', $1::jsonb)", [
-      JSON.stringify({ turn, businessesPaid: paid, totalIncome: total, nationalInsecurity: Math.round(nationalInsecurity(next.insecurity) * 10) / 10 }),
+      JSON.stringify({
+        turn,
+        businessesPaid: paid,
+        totalIncome: total,
+        salariesPaid: salaries.paid,
+        salaryTotal: salaries.total,
+        npcDecisions: decisions.rows.length,
+        economyInputs,
+        nationalInsecurity: Math.round(nationalInsecurity(next.insecurity) * 10) / 10,
+      }),
     ]);
-    return { turn, businessesPaid: paid, totalIncome: total };
+    return { turn, businessesPaid: paid, totalIncome: total, salariesPaid: salaries.paid, npcDecisions: decisions.rows.length };
   });
   deliver(ctx.realtime, pending);
   return report;
@@ -134,7 +154,10 @@ export async function runDueTicks(ctx: AppContext, nowMs = Date.now()): Promise<
   return reports;
 }
 
-/** In-process scheduler. Returns a stop function. (BullMQ is not implemented; see KNOWN_GAPS.md.) */
+/**
+ * In-process scheduler: monthly world ticks plus seat maintenance (inactivity, expired terms) on every check.
+ * Returns a stop function. (BullMQ is not implemented; see KNOWN_GAPS.md.)
+ */
 export function startTickScheduler(ctx: AppContext, log: (msg: string) => void): () => void {
   let running = false;
   const check = async () => {
@@ -142,7 +165,10 @@ export function startTickScheduler(ctx: AppContext, log: (msg: string) => void):
     running = true;
     try {
       const reps = await runDueTicks(ctx);
-      for (const rep of reps) log(`world tick ${rep.turn}: ${rep.businessesPaid} businesses paid ${formatNaira(rep.totalIncome)}`);
+      for (const rep of reps) log(`world tick ${rep.turn}: ${rep.businessesPaid} businesses paid ${formatNaira(rep.totalIncome)}, ${rep.salariesPaid} salaries`);
+      const seats = await runSeatMaintenance(ctx);
+      const changed = Object.values(seats.inactivity).some(Boolean) || Object.values(seats.terms).some(Boolean);
+      if (changed) log(`seat maintenance: ${JSON.stringify(seats)}`);
     } catch (e) {
       log(`world tick failed: ${String(e)}`);
     } finally {

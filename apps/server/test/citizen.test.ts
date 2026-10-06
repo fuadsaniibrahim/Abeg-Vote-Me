@@ -29,7 +29,9 @@ describe('parties', () => {
     const res = await app.inject({ method: 'GET', url: '/api/parties' });
     const parties = res.json().parties as { code: string; seatsHeld: number; playerMembers: number }[];
     expect(parties.map((p) => p.code).sort()).toEqual(['IND', 'LF', 'NDA', 'PRM', 'PUP']);
-    expect(parties.reduce((s, p) => s + p.seatsHeld, 0)).toBe(1317);
+    const seats = (await ctx.db.query<{ n: number }>('SELECT count(*)::int AS n FROM seats')).rows[0]!.n;
+    expect(seats).toBeGreaterThan(1317); // includes ward seats
+    expect(parties.reduce((s, p) => s + p.seatsHeld, 0)).toBe(seats);
   });
 
   it('join one party at a time; leaving starts a rejoin cooldown', async () => {

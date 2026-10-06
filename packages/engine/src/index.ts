@@ -20,3 +20,4 @@ export * from './zoning.js';
 export * from './tick.js';
 export * from './citizen.js';
 export * from './filter.js';
+export * from './offices.js';

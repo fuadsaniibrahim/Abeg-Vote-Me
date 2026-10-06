@@ -13,6 +13,9 @@ import {
   type GenNpc,
   type GenSeat,
   type GenState,
+  type GenWard,
+  type NpcPersonality,
+  type SeatKind,
   type GeneratedWorld,
   type InsecurityType,
   type Issue,
@@ -260,9 +263,30 @@ function npcName(rng: Rng, zone: Zone, gender: 'male' | 'female', senior: boolea
   }
 }
 
-function pickParty(rng: Rng, leanings: Record<string, number>): string {
+/** Pick a real party (never Independent), favouring the unit's strongest leanings. */
+export function pickLeaningParty(rng: Rng, leanings: Record<string, number>): string {
   const codes = Object.keys(leanings).filter((c) => c !== 'IND');
   return rng.weighted(codes, (c) => (leanings[c] ?? 0) ** 2);
+}
+
+const LOCAL_KINDS: readonly SeatKind[] = ['LG_CHAIRMAN', 'COUNCILLOR', 'WARD_CHAIRMAN'];
+
+/** Name, gender, age and personality for an NPC office holder. */
+function npcPerson(r: Rng, zone: Zone, kind: SeatKind): { name: string; gender: 'male' | 'female'; age: number; personality: NpcPersonality } {
+  const gender = r.chance(0.3) ? 'female' : 'male';
+  const local = LOCAL_KINDS.includes(kind);
+  const name = npcName(r, zone, gender, !local);
+  const age = kind === 'LG_CHAIRMAN' ? r.int(32, 62) : local ? r.int(28, 65) : r.int(40, 74);
+  const personality = { integrity: r.int(10, 90), greed: r.int(10, 90), loyalty: r.int(20, 95), ambition: r.int(20, 95) };
+  return { name, gender, age, personality };
+}
+
+/**
+ * A fresh NPC for a seat after the world was generated (appointed deputy, replacement for a term-limited NPC).
+ * `serial` makes the id unique per seat.
+ */
+export function generateNpc(rng: Rng, opts: { seatId: string; kind: SeatKind; stateCode: string; zone: Zone; partyCode: string; serial: number }): GenNpc {
+  return { id: `npc-${opts.seatId}-${opts.serial}`, stateCode: opts.stateCode, partyCode: opts.partyCode, seatId: opts.seatId, ...npcPerson(rng, opts.zone, opts.kind) };
 }
 
 // ---------- main ----------
@@ -311,13 +335,26 @@ export function generateWorld(seed: string, states: readonly StateData[] = STATE
     }
   }
 
-  const seats = buildSeats(genStates, districts, constituencies, lgas);
+  const wards = buildWards(root.fork('wards'), lgas);
+  const seats = buildSeats(genStates, districts, constituencies, lgas, wards);
   const npcs = buildNpcs(root.fork('npcs'), seats, genStates, districts, constituencies, lgas);
-  return { seed, states: genStates, lgas, districts, constituencies, seats, npcs };
+  return { seed, states: genStates, lgas, districts, constituencies, wards, seats, npcs };
 }
 
-function buildSeats(states: GenState[], districts: GenDistrict[], constituencies: GenConstituency[], lgas: GenLga[]): GenSeat[] {
-  const none = { stateCode: null, districtId: null, constituencyId: null, lgaId: null };
+/** Wards per LGA (game numbers: 8-14, about 11 on average, near the real national average). */
+function buildWards(rng: Rng, lgas: GenLga[]): GenWard[] {
+  const wards: GenWard[] = [];
+  for (const l of lgas) {
+    const n = rng.fork(l.id).int(8, 14);
+    for (let i = 1; i <= n; i++) {
+      wards.push({ id: `${l.id}-W${String(i).padStart(2, '0')}`, lgaId: l.id, stateCode: l.stateCode, number: i, name: `${l.name} Ward ${i}` });
+    }
+  }
+  return wards;
+}
+
+function buildSeats(states: GenState[], districts: GenDistrict[], constituencies: GenConstituency[], lgas: GenLga[], wards: GenWard[]): GenSeat[] {
+  const none = { stateCode: null, districtId: null, constituencyId: null, lgaId: null, wardId: null };
   const seats: GenSeat[] = [
     { id: 'PRES', kind: 'PRESIDENT', name: 'President of the Federal Republic', ...none },
     { id: 'VP', kind: 'VICE_PRESIDENT', name: 'Vice President', ...none },
@@ -335,6 +372,11 @@ function buildSeats(states: GenState[], districts: GenDistrict[], constituencies
   }
   for (const l of lgas) {
     seats.push({ id: `LGC-${l.id}`, kind: 'LG_CHAIRMAN', name: `Chairman, ${l.name} LGA`, ...none, stateCode: l.stateCode, lgaId: l.id });
+  }
+  for (const w of wards) {
+    const at = { ...none, stateCode: w.stateCode, lgaId: w.lgaId, wardId: w.id };
+    seats.push({ id: `CLR-${w.id}`, kind: 'COUNCILLOR', name: `Councillor, ${w.name}`, ...at });
+    seats.push({ id: `WCH-${w.id}`, kind: 'WARD_CHAIRMAN', name: `Ward Chairman, ${w.name}`, ...at });
   }
   return seats;
 }
@@ -379,7 +421,7 @@ function buildNpcs(
     let partyCode: string;
     if (seat.kind === 'VICE_PRESIDENT') partyCode = partyOfSeat.get('PRES') as string;
     else if (seat.kind === 'DEPUTY_GOVERNOR') partyCode = partyOfSeat.get(`GOV-${stateCode}`) as string;
-    else partyCode = pickParty(r, leanings);
+    else partyCode = pickLeaningParty(r, leanings);
     partyOfSeat.set(seat.id, partyCode);
 
     if (seat.kind === 'VICE_PRESIDENT') {
@@ -389,23 +431,7 @@ function buildNpcs(
     }
 
     const zone = (stateBy.get(stateCode) as GenState).zone;
-    const gender = r.chance(0.3) ? 'female' : 'male';
-    const senior = seat.kind !== 'LG_CHAIRMAN';
-    npcs.push({
-      id: `npc-${seat.id}`,
-      name: npcName(r, zone, gender, senior),
-      gender,
-      age: r.int(seat.kind === 'LG_CHAIRMAN' ? 32 : 40, seat.kind === 'LG_CHAIRMAN' ? 62 : 74),
-      stateCode,
-      partyCode,
-      personality: {
-        integrity: r.int(10, 90),
-        greed: r.int(10, 90),
-        loyalty: r.int(20, 95),
-        ambition: r.int(20, 95),
-      },
-      seatId: seat.id,
-    });
+    npcs.push({ id: `npc-${seat.id}`, stateCode, partyCode, seatId: seat.id, ...npcPerson(r, zone, seat.kind) });
   }
   return npcs;
 }

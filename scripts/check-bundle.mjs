@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BUDGET_KB = Number(process.env.BUNDLE_BUDGET_KB ?? 200);
-const LAZY_SCREENS = ['CreateCharacterScreen', 'DashboardScreen', 'ProfileScreen', 'PartyHubScreen', 'ActionsScreen', 'FinanceScreen', 'NewsScreen', 'ChatScreen'];
+const LAZY_SCREENS = ['CreateCharacterScreen', 'DashboardScreen', 'ProfileScreen', 'PartyHubScreen', 'ActionsScreen', 'FinanceScreen', 'NewsScreen', 'ChatScreen', 'MapScreen', 'StateMapScreen', 'ConstituencyScreen', 'LgaScreen', 'SeatScreen'];
 
 const b = spawnSync('npm', ['run', 'build', '-w', '@avm/web'], { cwd: root, encoding: 'utf8' });
 if (b.status !== 0) {
@@ -29,7 +29,7 @@ const entryGz = gzipSync(readFileSync(join(assets, entry))).length / 1024;
 const missing = LAZY_SCREENS.filter((s) => !jsFiles.some((f) => f.startsWith(`${s}-`)));
 const entrySrc = readFileSync(join(assets, entry), 'utf8');
 // a lazy screen's own markup must not be inside the entry chunk
-const leaked = ['Start my career', 'Write a story', 'Start business', 'Talk your own'].filter((t) => entrySrc.includes(t));
+const leaked = ['Start my career', 'Write a story', 'Start business', 'Talk your own', 'Map of Nigeria', 'Seat history', 'Ward chairman'].filter((t) => entrySrc.includes(t));
 
 console.log(`entry ${entry}: ${entryGz.toFixed(1)} KB gzip (budget ${BUDGET_KB} KB)`);
 console.log(`js chunks: ${jsFiles.length}; lazy screen chunks found: ${LAZY_SCREENS.length - missing.length}/${LAZY_SCREENS.length}`);

@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { loadEnv, loadGameConfig, type GameConfig } from '../src/config.js';
+import { loadEnv, loadGameConfig, termMs, type GameConfig } from '../src/config.js';
 import { createPgliteDb } from '../src/db/index.js';
 import { migrate } from '../src/db/migrate.js';
 import { createMemoryKv } from '../src/redis.js';
@@ -12,7 +12,7 @@ export async function createTestContext(opts: { seed?: boolean; game?: Partial<G
   const game = { ...loadGameConfig(resolve(import.meta.dirname, '../../../config/game.json')), ...opts.game };
   const db = await createPgliteDb('memory');
   await migrate(db);
-  if (opts.seed) await seedWorld(db, 'test-world');
+  if (opts.seed) await seedWorld(db, 'test-world', { termMs: termMs(game) });
   return { env, game, db, kv: createMemoryKv(), realtime: noRealtime };
 }
 

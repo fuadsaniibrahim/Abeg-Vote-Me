@@ -11,6 +11,7 @@ import { registerCitizenRoutes } from './game/citizen.js';
 import { registerFinanceRoutes } from './game/finance.js';
 import { registerMediaRoutes } from './game/media.js';
 import { registerChatRoutes } from './game/chat.js';
+import { registerOfficeRoutes } from './game/offices.js';
 
 export async function buildApp(ctx: AppContext, opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: true });
@@ -34,5 +35,6 @@ export async function buildApp(ctx: AppContext, opts: { logger?: boolean } = {})
   registerFinanceRoutes(app, ctx);
   registerMediaRoutes(app, ctx);
   registerChatRoutes(app, ctx);
+  registerOfficeRoutes(app, ctx);
   return app;
 }

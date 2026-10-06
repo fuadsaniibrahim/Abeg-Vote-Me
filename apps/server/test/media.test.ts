@@ -23,7 +23,7 @@ afterAll(async () => {
 
 describe('Naija Daily headlines', () => {
   it('every template kind renders without missing variables', () => {
-    const vars = { name: 'Ada Obi', lga: 'Ikeja', state: 'Lagos', party: 'PUP', amount: '₦1,000,000', recipient: 'PUP', sector: 'shop', title: 'Fix roads', count: 10, issue: 'fuel', inflation: '20.1', fuel: '₦650', fx: '₦1,450' };
+    const vars = { name: 'Ada Obi', lga: 'Ikeja', state: 'Lagos', party: 'PUP', amount: '₦1,000,000', recipient: 'PUP', sector: 'shop', title: 'Fix roads', count: 10, issue: 'fuel', inflation: '20.1', fuel: '₦650', fx: '₦1,450', seat: 'Governor of Lagos State', office: 'Governor' };
     for (const kind of Object.keys(NEWS_TEMPLATES)) {
       for (let i = 0; i < 20; i++) expect(headlineFor(kind, vars, new Rng(`${kind}${i}`)), kind).not.toMatch(/[{}]/);
     }

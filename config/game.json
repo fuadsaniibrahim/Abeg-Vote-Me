@@ -61,5 +61,88 @@
   "tick": {
     "checkIntervalMs": 60000,
     "maxCatchUpTurns": 24
+  },
+  "offices": {
+    "byElectionDelayHours": 72,
+    "minPartyDays": 1,
+    "monthlySalary": {
+      "PRESIDENT": 3500000,
+      "VICE_PRESIDENT": 2900000,
+      "GOVERNOR": 2200000,
+      "DEPUTY_GOVERNOR": 2000000,
+      "SENATOR": 1500000,
+      "REP": 1000000,
+      "LG_CHAIRMAN": 450000,
+      "COUNCILLOR": 150000,
+      "WARD_CHAIRMAN": 60000
+    },
+    "eligibility": {
+      "PRESIDENT": {
+        "minAge": 35,
+        "priorOffice": [
+          "GOVERNOR",
+          "DEPUTY_GOVERNOR",
+          "SENATOR",
+          "REP",
+          "VICE_PRESIDENT"
+        ],
+        "requiresParty": true,
+        "residency": "none"
+      },
+      "VICE_PRESIDENT": {
+        "minAge": 35,
+        "priorOffice": [],
+        "requiresParty": true,
+        "residency": "none"
+      },
+      "GOVERNOR": {
+        "minAge": 35,
+        "priorOffice": [
+          "DEPUTY_GOVERNOR",
+          "SENATOR",
+          "REP",
+          "LG_CHAIRMAN",
+          "COUNCILLOR"
+        ],
+        "requiresParty": true,
+        "residency": "state"
+      },
+      "DEPUTY_GOVERNOR": {
+        "minAge": 35,
+        "priorOffice": [],
+        "requiresParty": true,
+        "residency": "state"
+      },
+      "SENATOR": {
+        "minAge": 35,
+        "priorOffice": [],
+        "requiresParty": false,
+        "residency": "state"
+      },
+      "REP": {
+        "minAge": 25,
+        "priorOffice": [],
+        "requiresParty": false,
+        "residency": "state"
+      },
+      "LG_CHAIRMAN": {
+        "minAge": 30,
+        "priorOffice": [],
+        "requiresParty": false,
+        "residency": "lga"
+      },
+      "COUNCILLOR": {
+        "minAge": 25,
+        "priorOffice": [],
+        "requiresParty": false,
+        "residency": "lga"
+      },
+      "WARD_CHAIRMAN": {
+        "minAge": 25,
+        "priorOffice": [],
+        "requiresParty": true,
+        "residency": "lga"
+      }
+    }
   }
 }

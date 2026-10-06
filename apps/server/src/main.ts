@@ -1,11 +1,12 @@
 import { buildApp } from './app.js';
 import { bootstrap } from './bootstrap.js';
+import { termMs } from './config.js';
 import { seedWorld } from './world/seed.js';
 import { attachRealtime } from './realtime.js';
 import { startTickScheduler } from './game/tick.js';
 
 const ctx = await bootstrap();
-const seeded = await seedWorld(ctx.db, ctx.env.WORLD_SEED);
+const seeded = await seedWorld(ctx.db, ctx.env.WORLD_SEED, { termMs: termMs(ctx.game) });
 const app = await buildApp(ctx, { logger: true });
 const io = attachRealtime(app, ctx);
 app.log.info({ db: ctx.db.driver, kv: ctx.kv.backend, world: seeded }, 'world ready');

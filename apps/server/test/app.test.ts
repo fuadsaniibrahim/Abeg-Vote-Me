@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { generateWorld } from '@avm/engine';
 import { buildApp } from '../src/app.js';
 import type { AppContext } from '../src/context.js';
 import { createTestContext } from './helpers.js';
@@ -29,8 +30,9 @@ describe('world summary', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.seeded).toBe(true);
-    expect(body.counts.seats).toBe(1317);
-    expect(body.seatsHeldByNpcs).toBe(1317);
+    const seats = generateWorld('test-world').seats.length;
+    expect(body.counts.seats).toBe(seats);
+    expect(body.seatsHeldByNpcs).toBe(seats);
     expect(body.seatsHeldByPlayers).toBe(0);
   });
 });

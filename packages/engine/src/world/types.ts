@@ -88,7 +88,16 @@ export interface GenConstituency extends UnitProfile {
   lgas: ConstituencyLga[];
 }
 
-export const SEAT_KINDS = ['PRESIDENT', 'VICE_PRESIDENT', 'GOVERNOR', 'DEPUTY_GOVERNOR', 'SENATOR', 'REP', 'LG_CHAIRMAN'] as const;
+export interface GenWard {
+  id: string;
+  lgaId: string;
+  stateCode: string;
+  /** 1-based within the LGA. */
+  number: number;
+  name: string;
+}
+
+export const SEAT_KINDS = ['PRESIDENT', 'VICE_PRESIDENT', 'GOVERNOR', 'DEPUTY_GOVERNOR', 'SENATOR', 'REP', 'LG_CHAIRMAN', 'COUNCILLOR', 'WARD_CHAIRMAN'] as const;
 export type SeatKind = (typeof SEAT_KINDS)[number];
 
 export interface GenSeat {
@@ -99,6 +108,7 @@ export interface GenSeat {
   districtId: string | null;
   constituencyId: string | null;
   lgaId: string | null;
+  wardId: string | null;
 }
 
 export interface NpcPersonality {
@@ -126,6 +136,7 @@ export interface GeneratedWorld {
   lgas: GenLga[];
   districts: GenDistrict[];
   constituencies: GenConstituency[];
+  wards: GenWard[];
   seats: GenSeat[];
   npcs: GenNpc[];
 }

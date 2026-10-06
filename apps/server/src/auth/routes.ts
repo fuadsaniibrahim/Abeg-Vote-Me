@@ -4,6 +4,7 @@ import type { AppContext } from '../context.js';
 import { audit } from '../audit.js';
 import { sendMail } from '../mailer.js';
 import { hashPassword, newToken, normaliseEmail, sha256, verifyPassword } from './crypto.js';
+import { touchActivity } from '../game/seats.js';
 
 export const SESSION_COOKIE = 'avm_sid';
 
@@ -52,6 +53,8 @@ export function registerSessionHook(app: FastifyInstance, ctx: AppContext) {
     if (row) {
       req.user = toPublic(row);
       req.sessionId = row.session_id;
+      // office inactivity is measured from here
+      await touchActivity(ctx.db, row.id);
     }
   });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STATES, PARTIES, NAME_POOLS, BLOCKED_SURNAMES } from '../src/index.js';
+import { STATES, PARTIES, NAME_POOLS, BLOCKED_SURNAMES, STATE_GRID } from '../src/index.js';
 
 // Official counts per state (INEC / constitution schedule).
 const OFFICIAL_LGA_COUNTS: Record<string, number> = {
@@ -55,5 +55,24 @@ describe('name pools', () => {
         expect(BLOCKED_SURNAMES.some((b) => l === b || l.includes(b)), last).toBe(false);
       }
     }
+  });
+});
+
+describe('state tile map grid', () => {
+  it('places every state and FCT exactly once, on distinct cells', () => {
+    expect(Object.keys(STATE_GRID).sort()).toEqual(STATES.map((s) => s.code).sort());
+    const cells = Object.values(STATE_GRID).map((c) => `${c.col},${c.row}`);
+    expect(new Set(cells).size).toBe(cells.length);
+  });
+
+  it('keeps zones roughly in place: northern states above southern ones, Lagos in the south-west corner', () => {
+    const avgRow = (zones: string[]) => {
+      const rows = STATES.filter((s) => zones.includes(s.zone)).map((s) => STATE_GRID[s.code]!.row);
+      return rows.reduce((a, b) => a + b, 0) / rows.length;
+    };
+    expect(avgRow(['NW', 'NE'])).toBeLessThan(avgRow(['NC']));
+    expect(avgRow(['NC'])).toBeLessThan(avgRow(['SW', 'SE', 'SS']));
+    expect(STATE_GRID.LA).toEqual({ col: 0, row: 5 });
+    expect(STATE_GRID.BO!.col).toBe(Math.max(...Object.values(STATE_GRID).map((c) => c.col)));
   });
 });

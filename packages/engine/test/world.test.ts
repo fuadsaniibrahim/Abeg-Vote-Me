@@ -80,9 +80,27 @@ describe('generateWorld', () => {
     expect(count('SENATOR')).toBe(109);
     expect(count('REP')).toBe(360);
     expect(count('LG_CHAIRMAN')).toBe(774);
-    expect(world.seats).toHaveLength(1317);
-    expect(new Set(world.seats.map((s) => s.id)).size).toBe(1317);
+    expect(count('COUNCILLOR')).toBe(world.wards.length);
+    expect(count('WARD_CHAIRMAN')).toBe(world.wards.length);
+    expect(world.seats).toHaveLength(1317 + 2 * world.wards.length);
+    expect(new Set(world.seats.map((s) => s.id)).size).toBe(world.seats.length);
     expect(world.seats.find((s) => s.id === 'GOV-FC')).toBeUndefined();
+  });
+
+  it('generates 8-14 wards per LGA, each with a councillor and a ward chairman seat', () => {
+    const perLga = new Map<string, number>();
+    for (const w of world.wards) perLga.set(w.lgaId, (perLga.get(w.lgaId) ?? 0) + 1);
+    expect(perLga.size).toBe(774);
+    for (const [id, n] of perLga) {
+      expect(n, id).toBeGreaterThanOrEqual(8);
+      expect(n, id).toBeLessThanOrEqual(14);
+    }
+    expect(new Set(world.wards.map((w) => w.id)).size).toBe(world.wards.length);
+    const w = world.wards.find((x) => x.id === 'LA-011-W01')!;
+    expect(w.name).toBe(`${world.lgas.find((l) => l.id === 'LA-011')!.name} Ward 1`);
+    const seats = world.seats.filter((s) => s.wardId === w.id);
+    expect(seats.map((s) => s.kind).sort()).toEqual(['COUNCILLOR', 'WARD_CHAIRMAN']);
+    for (const s of seats) expect(s).toMatchObject({ stateCode: 'LA', lgaId: 'LA-011' });
   });
 
   it('creates exactly one NPC placeholder per seat', () => {

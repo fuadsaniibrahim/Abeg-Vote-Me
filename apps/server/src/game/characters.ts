@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { BACKGROUNDS, buildCharacter, gameDateAt, validateCharacter, type BackgroundId } from '@avm/engine';
+import { BACKGROUNDS, buildCharacter, gameDateAt, validateCharacter, type BackgroundId, type SeatKind } from '@avm/engine';
 import { STATES } from '@avm/data';
 import type { AppContext } from '../context.js';
 import { audit } from '../audit.js';
@@ -38,8 +38,9 @@ export async function characterProfile(ctx: AppContext, c: CharacterRow) {
     ),
     db.query<{ group_kind: string }>('SELECT group_kind FROM group_memberships WHERE character_id = $1 AND left_at IS NULL ORDER BY group_kind', [c.id]),
     db.query<{ role: string }>('SELECT role FROM volunteer_roles WHERE character_id = $1 AND ended_at IS NULL ORDER BY role', [c.id]),
-    db.query<{ id: string; name: string; kind: string }>(
-      `SELECT s.id, s.name, s.kind FROM seat_tenures t JOIN seats s ON s.id = t.seat_id WHERE t.character_id = $1 AND t.ended_at IS NULL`,
+    db.query<{ id: string; name: string; kind: string; started_at: Date; term_ends_at: Date | null; autopilot_since: Date | null }>(
+      `SELECT s.id, s.name, s.kind, t.started_at, t.term_ends_at, t.autopilot_since
+       FROM seat_tenures t JOIN seats s ON s.id = t.seat_id WHERE t.character_id = $1 AND t.ended_at IS NULL`,
       [c.id],
     ),
     db.query<{ n: number }>('SELECT count(*)::int AS n FROM businesses WHERE owner_id = $1 AND closed_at IS NULL', [c.id]),
@@ -68,7 +69,17 @@ export async function characterProfile(ctx: AppContext, c: CharacterRow) {
     party: party.rows[0] ?? null,
     groups: groups.rows.map((g) => g.group_kind),
     volunteerRoles: roles.rows.map((r) => r.role),
-    office: seat.rows[0] ?? null,
+    office: seat.rows[0]
+      ? {
+          id: seat.rows[0].id,
+          name: seat.rows[0].name,
+          kind: seat.rows[0].kind,
+          since: seat.rows[0].started_at,
+          termEndsAt: seat.rows[0].term_ends_at,
+          autopilot: !!seat.rows[0].autopilot_since,
+          monthlySalary: ctx.game.offices.monthlySalary[seat.rows[0].kind as SeatKind] ?? 0,
+        }
+      : null,
     activeBusinesses: businesses.rows[0]?.n ?? 0,
     unreadNotifications: unread.rows[0]?.n ?? 0,
     createdAt: c.created_at,
