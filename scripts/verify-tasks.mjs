@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { parseTasks, staticProblems, summarise, indexVitestReport } from './lib/tasks-parser.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const tasksPath = join(root, 'TASKS.md');
+// TASKS_FILE lets tests point the verifier at a fixture; evidence paths still resolve from the repo root.
+const tasksPath = process.env.TASKS_FILE ? resolve(process.env.TASKS_FILE) : join(root, 'TASKS.md');
 
 function run(cmd, opts = {}) {
   return spawnSync(cmd, { shell: true, cwd: root, encoding: 'utf8', timeout: 15 * 60 * 1000, maxBuffer: 64 * 1024 * 1024, ...opts });
