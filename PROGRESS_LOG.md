@@ -128,3 +128,62 @@ verify exit: 0
 32 of 33 Phase 2 tasks done. P2-T04 is `[~]`: background perks are labels with no mechanical effect yet. Engine assumptions and invented numbers are listed in KNOWN_GAPS.md under "Engine (Phase 2)".
 `docker compose up` still not verifiable (no Docker). `npm run dev` verified by `scripts/smoke-dev.mjs` inside verify-tasks.
 
+## 2026-10-06 — Session 1 (continued): Phase 3 citizen role
+
+### What was done
+- Migration `002_citizen.sql`: ledger (`transactions`), action cooldown log, volunteer roles, civic groups, petitions + signatures, protests + participants, businesses, news items, journalist stories, chat (groups, messages, blocks), reports, notifications; `energy`, `journalist_rep`, `avatar_seed` on characters; `muted_until` on users; `last_tick_turn` on world state.
+- Engine: `citizen.ts` (energy regen, rally/protest outcomes, business income, economy factor), `filter.ts` (profanity masking with leetspeak, incitement rejection, real-politician mention check).
+- Server (`apps/server/src/game/`): characters (create needs verified email; one per account; engine-validated; never trusts client stats), parties (join/leave with rejoin cooldown), citizen actions (donate to party or candidate war chest, rally, volunteer, petitions, protests, civic groups), finance (businesses, ledger, wallet↔war chest transfers with diversion flag), media (news feed, Naija Daily templates, journalist stories checked against game records), notifications, chat REST, Socket.IO realtime (session-cookie auth, channel access, blocks, mutes, rate limit, filter, live notifications), world tick (catch-up, idempotent turn claims, business income, monthly headlines). Every money move is a single conditional UPDATE so balances can never go negative; every action is audited.
+- Web: character wizard, app shell (lazy-loaded screens, header with in-game date, wallet, notification bell), dashboard, profile (with logout), party hub, actions, finance, news + story composer, chat; generated SVG avatars; Socket.IO proxy in Vite.
+- `scripts/check-bundle.mjs`: builds the web app, checks all 8 game screens are separate chunks and the entry chunk is within budget. `scripts/smoke-dev.mjs` now also checks Socket.IO through the dev proxy.
+
+### Problems found and fixed while testing
+- The tick report counted all businesses while the audit counted paid owners; both now count businesses that actually earned income.
+- A wallet↔war chest transfer line I first wrote could throw the engine's error instead of a clean game error; reordered so the DB debit checks the balance first.
+- The overdraft donation test only asserted inside an `if`; rewritten to be unconditional.
+- Two web e2e failures were my test code, not the app: (1) the logout test clicked before the lazily loaded screen rendered; (2) my cookie-jar `fetch` wrapper overwrote an explicitly passed cookie, so the "other player" donation was sent as the same player and the server correctly answered `self_donation`. Fixed the wrapper to respect an explicit cookie.
+- Removed the character preview avatar: it was seeded from the name, but the server assigns a random avatar seed, so it would have shown the wrong face.
+- Verified players had no logout after `/home` started redirecting into the game; added logout to the profile screen (also resets game state and closes the socket).
+
+### Mutation checks
+- Made `DashboardScreen` an eager import: `check-bundle` failed (`missing lazy chunks: DashboardScreen`, exit 1). Restored; passes again (exit 0).
+
+### Verification (real output, trimmed)
+```
+$ npm run typecheck
+typecheck exit 0
+
+$ npm test   (run 3 times to look for flakiness)
+ Test Files  42 passed (42)
+      Tests  317 passed (317)
+      Tests  317 passed (317)
+      Tests  317 passed (317)
+
+$ node scripts/check-bundle.mjs
+entry index-BDXnsz2R.js: 83.2 KB gzip (budget 200 KB)
+js chunks: 15; lazy screen chunks found: 8/8
+
+$ node scripts/smoke-dev.mjs
+socket.io via proxy: 0{"sid":"I99658MfhN0gPIVwAAAA","upgrades
+web index ok: true
+api via proxy: {"status":"ok","db":"pglite","dbOk":true,"kv":"memory"}
+smoke exit 0
+
+$ npm run verify-tasks
+=== TASKS.md verification report ===
+Total tasks:  365
+Done [x]:     117
+In progress:  8
+Blocked:      1
+Not started:  239
+
+All 117 done task(s) passed verification.
+verify exit: 0
+```
+- Commit `8489b6c`: Phase 3 server.
+- Commit `1a5bbb8`: Phase 3 web and bundle check.
+
+### Phase 3 status
+32 of 35 done. P3-T05 `[~]` (dashboard has no countdowns/promises/approval until Phases 5/7), P3-T20 `[~]` (in-process scheduler only, no BullMQ; the interval loop itself is untested), P3-T33 `[ ]` (web push not started).
+`docker compose up` still not verifiable (no Docker). Not tested in a real browser: all UI tests run in jsdom against the real in-process server.
+

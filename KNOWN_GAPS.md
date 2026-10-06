@@ -36,7 +36,7 @@ If something is fake, it is listed here. Entries are removed only when the gap i
 
 ## Web
 
-- The signed-in home screen is a placeholder: it shows the email, verification status and logout. Character creation, the dashboard and every game screen come in later phases.
+- `/home` is now only the "confirm your email" page for unverified accounts; verified players are redirected into the game.
 - Sound, reduced-motion toggle (CSS honours the OS setting; there is no in-game switch yet), tutorial and the other UI/UX items in Phase 12 are not done.
 
 ## Engine (Phase 2)
@@ -50,3 +50,20 @@ If something is fake, it is listed here. Entries are removed only when the gap i
 - **Bribery "blackmail back"** is only an outcome value; nothing acts on it yet (Phase 8).
 - **Calendar**: every game month has 30 days.
 - **World tick** covers economy, per-state insecurity and the president's approval only. Governors' approval, state economies, NPC politics and scheduled events are not in it yet.
+
+## Citizen role (Phase 3)
+
+- **No web push** (P3-T33 not started). Live notifications only reach open tabs over Socket.IO; they are also stored and shown in the bell.
+- **World tick scheduler is in-process only** (`setInterval` in the server). BullMQ is not implemented. With several server instances, each would run the loop; turns are still claimed atomically in the DB, so a turn cannot run twice, but this has only been tested on PGlite's single connection (the "concurrent" tick test really runs one after another).
+- **The tick uses fixed policy inputs** (no subsidy, corruption 50, neutral spending, neutral security everywhere) because no player can set policy yet (Phase 7).
+- **Dashboard has no countdowns, promises or approval** (P3-T05 `[~]`): those systems do not exist until Phases 5 and 7.
+- **Energy** (new, not in the spec): actions cost energy that regenerates 5-15 per real hour depending on Stamina. Added so citizens cannot spam actions; numbers are untuned.
+- **Journalist stories** are limited to 4 claim types that the server can check against records (party membership, party donation, owning a business, joining a protest). Free-text investigative stories, libel cases and evidence come in Phase 8. Reputation moves +5 for a true story and -12 for a false one.
+- **The web can only donate to parties.** Donating to a candidate works through the API (and is tested) but has no screen yet.
+- **Rally, protest and story outcomes** are simple stat nudges; no venues, crowds or events yet (Phase 5 campaign rallies).
+- **Chat word lists are tiny** (`packages/data/src/moderation.ts`): 9 profanity words and 5 incitement patterns. They need a curated list, including Nigerian-language slurs, which I did not want to invent. Masking also over-matches some names that contain a listed word as a whole word.
+- **Chat rate limit uses fixed 10-second windows**, so a burst across a window boundary can send up to 2× the limit. The rate-limit test could in theory flake if its 8 messages straddle a boundary (it has passed in every run so far).
+- **Chat fan-out** fetches every socket in a channel and checks blocks per message. Fine for now; it will not scale to thousands in one channel (Phase 13 load test).
+- **State chat** is limited to your home state. Party chat follows current membership; history from before you joined is visible.
+- **Reports** are stored with status `open`; nobody can review them until the admin dashboard (Phase 11).
+- **Web tests run against the real server in-process** (real HTTP, WebSocket, PGlite), but in jsdom, not a real browser. Layout, CSS and mobile rendering are not tested; no screenshot or browser automation was run.
