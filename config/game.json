@@ -1,0 +1,38 @@
+{
+  "calendar": {
+    "realMsPerGameMonth": 86400000,
+    "startGameYear": 2027,
+    "startGameMonth": 1
+  },
+  "terms": {
+    "years": 4,
+    "maxTerms": { "GOVERNOR": 2, "PRESIDENT": 2 }
+  },
+  "election": {
+    "phaseHours": {
+      "registration": 48,
+      "primaries": 48,
+      "screening": 24,
+      "campaign": 96,
+      "debates": 24,
+      "voting": 36,
+      "collation": 12,
+      "tribunal": 72,
+      "swearing_in": 12
+    }
+  },
+  "inactivity": {
+    "autopilotAfterDays": 3,
+    "vacancyAfterDays": 10
+  },
+  "rookieShieldDays": 3,
+  "auth": {
+    "sessionDays": 30,
+    "verificationTokenHours": 24,
+    "minPasswordLength": 8
+  },
+  "rateLimits": {
+    "authPerMinute": 10,
+    "globalPerMinute": 300
+  }
+}

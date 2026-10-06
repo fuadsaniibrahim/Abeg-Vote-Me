@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: avm
+      POSTGRES_PASSWORD: avm
+      POSTGRES_DB: avm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avm -d avm"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    environment:
+      # development so the dev outbox endpoint works locally (no SMTP yet)
+      NODE_ENV: development
+      DATABASE_URL: postgres://avm:avm@postgres:5432/avm
+      REDIS_URL: redis://redis:6379
+      WEB_ORIGIN: http://localhost:8080
+      WORLD_SEED: abeg-vote-me-season-1
+      COOKIE_SECRET: ${COOKIE_SECRET:-docker-local-cookie-secret-123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - server
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:
