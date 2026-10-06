@@ -109,7 +109,7 @@ export interface Profile {
   party: PartyRef | null;
   groups: string[];
   volunteerRoles: string[];
-  office: { id: string; name: string; kind: string } | null;
+  office: { id: string; name: string; kind: string; since: string; termEndsAt: string | null; autopilot: boolean; monthlySalary: number } | null;
   activeBusinesses: number;
   unreadNotifications: number;
 }
@@ -203,6 +203,90 @@ export interface ActionOutcome {
   fined?: number;
 }
 
+// ---------- seats and map ----------
+
+export interface Holder {
+  tenureId: number;
+  type: 'npc' | 'player';
+  id: string;
+  name: string;
+  avatarSeed: string | null;
+  party: { code: string; name: string; color: string } | null;
+  since: string;
+  termEndsAt: string | null;
+  holdingOver: boolean;
+  autopilot: boolean;
+  startReason: string;
+}
+
+export interface Seat {
+  id: string;
+  kind: string;
+  kindLabel: string;
+  name: string;
+  stateCode: string | null;
+  districtId: string | null;
+  constituencyId: string | null;
+  lgaId: string | null;
+  wardId: string | null;
+  holder: Holder | null;
+}
+
+export interface SeatDetail {
+  seat: Seat & { salary: number; mine: boolean };
+  deputy: Seat | null;
+  principal: Seat | null;
+  chiefOfStaff: { id: string; name: string } | null;
+  acting: { type: 'holder' | 'chief_of_staff' | 'deputy' | 'autopilot'; name: string | null } | null;
+  openElection: { id: number; kind: 'by_election' | 'general'; reason: string; scheduledFor: string } | null;
+}
+
+export interface SeatHistoryEntry {
+  tenureId: number;
+  type: 'npc' | 'player';
+  id: string;
+  name: string;
+  party: { code: string; color: string } | null;
+  startedAt: string;
+  endedAt: string | null;
+  startReason: string;
+  endReason: string | null;
+}
+
+export interface CountryMap {
+  parties: { code: string; name: string; color: string }[];
+  states: { code: string; name: string; zone: string; isFct: boolean; governor: Holder | null; seatsByParty: Record<string, number>; leadingParty: string | null; insecurity: number | null }[];
+}
+
+export interface StateMap {
+  state: { code: string; name: string; capital: string; zone: string; isFct: boolean; population: number; wealth: number; insecurity: number };
+  governor: Seat | null;
+  deputyGovernor: Seat | null;
+  senators: (Seat & { districtName: string })[];
+  reps: (Seat & { constituencyName: string })[];
+  lgas: { id: string; name: string; wards: number; chairman: Seat }[];
+}
+
+export interface ConstituencyMap {
+  constituency: { id: string; name: string; stateCode: string; population: number; wealth: number };
+  rep: Seat;
+  senators: (Seat & { districtName: string })[];
+  lgas: { id: string; name: string; share: number; chairman: Seat | null }[];
+}
+
+export interface LgaMap {
+  lga: { id: string; name: string; stateCode: string; isCapital: boolean; population: number; wealth: number };
+  chairman: Seat;
+  constituencies: { id: string; name: string }[];
+  district: { id: string; name: string } | null;
+  wards: { id: string; name: string; number: number; councillor: Seat | null; wardChairman: Seat | null }[];
+}
+
+export interface Eligibility {
+  eligible: boolean;
+  reasons: { code: string; message: string }[];
+}
+
 const post = <T>(path: string, body?: unknown) => api<T>(path, { method: 'POST', body: body ?? {} });
 
 export const gameApi = {
@@ -238,4 +322,13 @@ export const gameApi = {
   openDm: (characterId: string) => post<{ channel: string }>('/api/chat/dm', { characterId }),
   block: (characterId: string) => post<{ ok: true }>('/api/chat/blocks', { characterId }),
   report: (targetType: string, targetId: string, reason: string) => post<{ id: number }>('/api/reports', { targetType, targetId, reason }),
+  countryMap: () => api<CountryMap>('/api/map/country'),
+  stateMap: (code: string) => api<StateMap>(`/api/map/states/${encodeURIComponent(code)}`),
+  constituencyMap: (id: string) => api<ConstituencyMap>(`/api/map/constituencies/${encodeURIComponent(id)}`),
+  lgaMap: (id: string) => api<LgaMap>(`/api/map/lgas/${encodeURIComponent(id)}`),
+  seat: (id: string) => api<SeatDetail>(`/api/seats/${encodeURIComponent(id)}`),
+  seatHistory: (id: string) => api<{ history: SeatHistoryEntry[] }>(`/api/seats/${encodeURIComponent(id)}/history`),
+  eligibility: (id: string) => api<Eligibility>(`/api/seats/${encodeURIComponent(id)}/eligibility`),
+  resign: () => post<{ ok: true; seatId: string; plan: string }>('/api/office/resign', { confirm: true }),
+  setChiefOfStaff: (characterId: string | null) => post<{ ok: true; chiefOfStaff: { id: string; name: string } | null }>('/api/office/chief-of-staff', { characterId }),
 };

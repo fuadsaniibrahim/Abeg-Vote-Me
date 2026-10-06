@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { TRAITS, formatNaira, type TraitId } from '@avm/engine';
 import { Page } from '../components/Layout';
 import { Card } from '../components/ui';
+import { relativeDays, shortDate } from '../components/seats';
 import { StatBars } from '../components/StatBars';
 import { GameClock } from '../components/AppShell';
 import { useGame } from '../store/game';
@@ -20,7 +21,15 @@ export function DashboardScreen() {
           <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>
               <dt className="text-xs opacity-70">Office</dt>
-              <dd className="font-semibold">{profile.office ? profile.office.name : 'Citizen'}</dd>
+              <dd className="font-semibold">
+                {profile.office ? (
+                  <Link to={`/seats/${profile.office.id}`} className="underline underline-offset-2">
+                    {profile.office.name}
+                  </Link>
+                ) : (
+                  'Citizen'
+                )}
+              </dd>
             </div>
             <div>
               <dt className="text-xs opacity-70">Party</dt>
@@ -52,6 +61,27 @@ export function DashboardScreen() {
             </div>
           </dl>
         </Card>
+        {profile.office && (
+          <Card>
+            <h2 className="mb-2 font-semibold">Your office</h2>
+            <dl className="mt-2 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="text-xs opacity-70">In office since</dt>
+                <dd className="font-semibold">{shortDate(profile.office.since)}</dd>
+              </div>
+              {profile.office.termEndsAt && (
+                <div>
+                  <dt className="text-xs opacity-70">Term ends</dt>
+                  <dd className="font-semibold">{relativeDays(profile.office.termEndsAt)}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-xs opacity-70">Monthly salary</dt>
+                <dd className="font-semibold tabular-nums">{formatNaira(profile.office.monthlySalary)}</dd>
+              </div>
+            </dl>
+          </Card>
+        )}
         <Card>
           <h2 className="mb-3 font-semibold">Your stats</h2>
           <StatBars stats={profile.stats} />
@@ -68,6 +98,9 @@ export function DashboardScreen() {
             )}
             <Link className="rounded-lg border border-naija-600/40 px-3 py-2 font-semibold" to="/actions">
               Take action
+            </Link>
+            <Link className="rounded-lg border border-naija-600/40 px-3 py-2 font-semibold" to={`/map/${profile.homeStateCode}`}>
+              Seats in {profile.homeStateName}
             </Link>
           </div>
         </Card>

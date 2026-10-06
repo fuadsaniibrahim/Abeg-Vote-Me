@@ -10,6 +10,7 @@ import { Avatar } from './Avatar';
 const NAV = [
   { to: '/news', label: 'News', icon: '📰' },
   { to: '/dashboard', label: 'Dashboard', icon: '🏛️' },
+  { to: '/map', label: 'Map', icon: '🗺️' },
   { to: '/parties', label: 'Parties', icon: '🎌' },
   { to: '/actions', label: 'Actions', icon: '✊' },
   { to: '/chat', label: 'Chat', icon: '💬' },
