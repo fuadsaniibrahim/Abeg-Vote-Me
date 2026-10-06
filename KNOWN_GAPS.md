@@ -38,3 +38,15 @@ If something is fake, it is listed here. Entries are removed only when the gap i
 
 - The signed-in home screen is a placeholder: it shows the email, verification status and logout. Character creation, the dashboard and every game screen come in later phases.
 - Sound, reduced-motion toggle (CSS honours the OS setting; there is no in-game switch yet), tutorial and the other UI/UX items in Phase 12 are not done.
+
+## Engine (Phase 2)
+
+- **Every tuning number is invented** and has not been balanced against play: economy targets (15% inflation baseline, ₦650 fuel, ₦1,450/$ start), voter-utility weights, bribe prices, detection odds, insecurity sensitivities, approval weights, legacy formula. They are tested for *direction* (e.g. "insecurity lowers turnout") and *bounds*, not for realism. Balancing is Phase 13.
+- **Background perks are labels only.** The 10 backgrounds have stats and starting money, but no game system reads the perks yet (P2-T04 is `[~]`).
+- **President rule follows the spec**, not the constitution: winner needs ≥25% in 24 of the 37 units (36 states + FCT), which is configurable. The real rule (two-thirds of states *and* FCT) is different.
+- **Run-off runner-up is my interpretation**: the other candidate with ≥25% in the most units, ties broken by votes. The governor rule uses the same run-off logic. The real constitution words this differently.
+- **Ties**: default is a fresh election (`rerun`). A seeded "draw lots" option exists. Neither is wired to anything yet.
+- **Voter model simplifications**: each bloc matches candidate issues against its own fixed top-issue list; the unit-level issue weights are not used in voting yet. Regional alignment is binary (same zone / same state). No ethnicity or religion is modelled in voting.
+- **Bribery "blackmail back"** is only an outcome value; nothing acts on it yet (Phase 8).
+- **Calendar**: every game month has 30 days.
+- **World tick** covers economy, per-state insecurity and the president's approval only. Governors' approval, state economies, NPC politics and scheduled events are not in it yet.

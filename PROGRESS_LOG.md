@@ -82,3 +82,49 @@ Negative check: a copy of TASKS.md with P1-T60 (OAuth) faked as `[x]` was reject
 
 - Correction: P1-T02 evidence now cites commit `1880601`, the commit that added the first log entry its test checks (it previously cited `dbf9dc5`, where the log was still empty).
 
+## 2026-10-06 — Session 1 (continued): Phase 2 engine
+
+### What was done
+New pure modules in `packages/engine/src`: `stats.ts`, `character.ts` (10 backgrounds, 12 traits, 3 incompatible pairs, name/age/LGA validation), `money.ts` (₦ formatting, wallet vs war chest), `calendar.ts`, `approval.ts`, `economy.ts`, `voters.ts` (bloc utility, turnout, NPC vote simulation, player votes added at full weight), `elections.ts` (plurality, governor 25%-in-⅔-of-LGAs, president 25%-in-24-of-37, run-off selection, ties), `text.ts` (templates with variables, inline variations, named pools), `events/` (types, condition evaluator, weighted selection with cooldowns, choice outcomes and effects, follow-up chains, JSON validator), `bribery.ts`, `insecurity.ts`, `legacy.ts`, `zoning.ts`, `tick.ts` (deterministic monthly world tick). One test file per module.
+
+### Problems found and fixed while testing
+- 2 failures were **my own wrong test data**, not code bugs: the plurality test and the governor test had vote numbers where the candidate I expected to win actually had fewer votes (b 55 vs a 50; b 160 vs a 140). The code was right; I corrected the numbers.
+- 1 real imbalance: background stat totals ranged 365 (civil servant) to 435 (entertainer). Adjusted civil servant up and entertainer down; range is now 385-420 and the test bound tightened from 60 to 50.
+- The test "runner-up is chosen by spread first, not by votes" passed but did not prove its claim: in my data the chosen runner-up also had more votes. Rewrote it so the other candidate has more votes, and the test now asserts that precondition.
+
+### Mutation check (do the election tests catch real bugs?)
+Temporarily broke `elections.ts` three ways, ran its tests, restored the file:
+```
+--- mutation: two-thirds rounds down instead of up        Tests  1 failed | 13 passed (14)
+--- mutation: president needs 23 units instead of 24      Tests  1 failed | 13 passed (14)
+--- mutation: runner-up chosen by votes before spread     Tests  1 failed | 13 passed (14)
+```
+Restoration confirmed by grepping the original lines and re-running: `Tests 144 passed (144)` (engine).
+
+### Verification (real output, trimmed)
+```
+$ npm run typecheck
+typecheck exit 0
+
+$ npm test
+ Test Files  32 passed (32)
+      Tests  238 passed (238)
+npm test exit: 0
+
+$ npm run verify-tasks
+=== TASKS.md verification report ===
+Total tasks:  365
+Done [x]:     85
+In progress:  6
+Blocked:      1
+Not started:  273
+
+All 85 done task(s) passed verification.
+verify exit: 0
+```
+- Commit `26b74ea`: Phase 2 engine code and tests.
+
+### Phase 2 status
+32 of 33 Phase 2 tasks done. P2-T04 is `[~]`: background perks are labels with no mechanical effect yet. Engine assumptions and invented numbers are listed in KNOWN_GAPS.md under "Engine (Phase 2)".
+`docker compose up` still not verifiable (no Docker). `npm run dev` verified by `scripts/smoke-dev.mjs` inside verify-tasks.
+
